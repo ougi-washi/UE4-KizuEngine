@@ -22,13 +22,28 @@ public:
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 	/* Delegate called when session started */
 	FOnStartSessionCompleteDelegate OnStartSessionCompleteDelegate;
+	/** Delegate for searching for sessions */
+	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
+	/** Delegate for joining a session */
+	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
+	/** Delegate for destroying a session */
+	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
 
-	/** Handles to registered delegates for creating/starting a session */
+	/** Handles to registered delegates for creating a session */
 	FDelegateHandle OnCreateSessionCompleteDelegateHandle;
+	/** Handles to registered delegate for searching a session */
 	FDelegateHandle OnStartSessionCompleteDelegateHandle;
+	/** Handles to registered delegate for searching a session */
+	FDelegateHandle OnFindSessionsCompleteDelegateHandle;
+	/** Handle to registered delegate for joining a session */
+	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
+	/** Handle to registered delegate for destroying a session */
+	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
 
-	/* Session Settings variable to define LAN or not and number of allowed players.. etc*/
+	/** Session settings variable to define LAN or not and number of allowed players.. etc */
 	TSharedPtr<class FOnlineSessionSettings> SessionSettings;
+	/** Session search results */
+	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
 
 	/** Game instance Constructor */
 	UKGameInstance(const FObjectInitializer& ObjectInitializer);
@@ -43,6 +58,25 @@ public:
 	*	@Param		MaxNumPlayers	        Number of Maximum allowed players on this "Session" (Server)
 	*/
 	bool HostSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, bool bIsLAN, bool bIsPresence, int32 MaxNumPlayers);
+
+	/**
+	*	Find an online session
+	*
+	*	@param UserId user that initiated the request
+	*	@param bIsLAN are we searching LAN matches
+	*	@param bIsPresence are we searching presence sessions
+	*/
+	void FindSessions(TSharedPtr<const FUniqueNetId> UserId, bool bIsLAN, bool bIsPresence);
+
+	/**
+	*	Joins a session via a search result
+	*
+	*	@param SessionName name of session
+	*	@param SearchResult Session to join
+	*
+	*	@return bool true if successful, false otherwise
+	*/
+	bool JoinSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
 
 	/**
 	*	Function fired when a session create request has completed
@@ -60,4 +94,35 @@ public:
 	*/
 	void OnStartOnlineGameComplete(FName SessionName, bool bWasSuccessful);
 
+	/**
+	*	Delegate fired when a session search query has completed
+	*
+	*	@param bWasSuccessful true if the async action completed without error, false if there was an error
+	*/
+	void OnFindSessionsComplete(bool bWasSuccessful);
+
+	/**
+	*	Delegate fired when a session join request has completed
+	*
+	*	@param SessionName the name of the session this callback is for
+	*	@param bWasSuccessful true if the async action completed without error, false if there was an error
+	*/
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+	/**
+	*	Delegate fired when a destroying an online session has completed
+	*
+	*	@param SessionName the name of the session this callback is for
+	*	@param bWasSuccessful true if the async action completed without error, false if there was an error
+	*/
+	virtual void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+
+	/**
+	*	Start a server with a given number of players
+	*
+	*	@param NumebrOfPlayers the number of players to join the session
+	*	@param bIsLan if the session can be joined by LAN devices
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Network")
+		void StartServer(const int NumebrOfPlayers = 4, const bool bIsLan = true);
 };
