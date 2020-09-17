@@ -110,7 +110,7 @@ void UKGameInstance::FindSessions(TSharedPtr<const FUniqueNetId> UserId, bool bI
 	}
 }
 
-bool UKGameInstance::JoinSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& SearchResult)
+bool UKGameInstance::JoinSession_K(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& SearchResult)
 {
 	// Return bool
 	bool bSuccessful = false;
@@ -206,18 +206,24 @@ void UKGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 			// If we have found at least 1 session, we just going to debug them. You could add them to a list of UMG Widgets, like it is done in the BP version!
 			if (SessionSearch->SearchResults.Num() > 0)
 			{
+				// Create Sessions wrappers
+				TArray<FOnlineSessionSearchResult_BP> SessionsFound;
 				// "SessionSearch->SearchResults" is an Array that contains all the information. You can access the Session in this and get a lot of information.
 				// This can be customized later on with your own classes to add more information that can be set and displayed
 				for (int32 SearchIdx = 0; SearchIdx < SessionSearch->SearchResults.Num(); SearchIdx++)
 				{
+					// Add the session found to the wrapper
+					SessionsFound.Add(FOnlineSessionSearchResult_BP(SessionSearch->SearchResults[SearchIdx]));
 					// OwningUserName is just the SessionName for now. I guess you can create your own Host Settings class and GameSession Class and add a proper GameServer Name here.
 					// This is something you can't do in Blueprint for example!
 					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Session Number: %d | Sessionname: %s "), SearchIdx + 1, *(SessionSearch->SearchResults[SearchIdx].Session.OwningUserName)));
 				}
+				OnFindSessions(SessionsFound);
 			}
 		}
 	}
 }
+
 
 void UKGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
@@ -276,11 +282,39 @@ void UKGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSucces
 	}
 }
 
-void UKGameInstance::StartServer(const int NumebrOfPlayers /*= 4*/, const bool bIsLan /*= true*/)
+void UKGameInstance::StartSession(const int NumebrOfPlayers /*= 4*/, const bool bIsLan /*= true*/)
 {
 	// Creating a local player where we can get the UserID from
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
 	// Call our custom HostSession function. GameSessionName is a GameInstance variable
-	HostSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), GameSessionName, true, true, 4);
+	HostSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), GameSessionName, bIsLan, true, NumebrOfPlayers);
+}
+
+void UKGameInstance::FindSessions()
+{
+	ULocalPlayer* const Player = GetFirstGamePlayer();
+
+	FindSessions(Player->GetPreferredUniqueNetId().GetUniqueNetId(), true, true);
+}
+
+void UKGameInstance::JoinSession_K(FOnlineSessionSearchResult_BP SearchResult)
+{
+	JoinSession_K(GetFirstGamePlayer()->GetPreferredUniqueNetId().GetUniqueNetId(), GameSessionName, SearchResult.SearchResult);
+}
+
+void UKGameInstance::DestroySession()
+{
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+
+		if (Sessions.IsValid())
+		{
+			Sessions->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
+
+			Sessions->DestroySession(GameSessionName);
+		}
+	}
 }

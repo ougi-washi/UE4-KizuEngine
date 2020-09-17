@@ -4,12 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "KGameInstance.generated.h"
 
 /**
  * 
  */
+
+
+USTRUCT(BlueprintType)
+struct FOnlineSessionSearchResult_BP
+{
+	GENERATED_USTRUCT_BODY()
+
+	FOnlineSessionSearchResult SearchResult;
+	FOnlineSessionSearchResult_BP() {
+		// Default constructor here
+	}
+	FOnlineSessionSearchResult_BP(FOnlineSessionSearchResult inSearchResult) {
+		SearchResult = inSearchResult;
+	}
+
+};
+
 UCLASS()
 class KIZUENGINE_API UKGameInstance : public UGameInstance
 {
@@ -76,7 +94,7 @@ public:
 	*
 	*	@return bool true if successful, false otherwise
 	*/
-	bool JoinSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
+	bool JoinSession_K(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
 
 	/**
 	*	Function fired when a session create request has completed
@@ -101,6 +119,7 @@ public:
 	*/
 	void OnFindSessionsComplete(bool bWasSuccessful);
 
+
 	/**
 	*	Delegate fired when a session join request has completed
 	*
@@ -124,5 +143,17 @@ public:
 	*	@param bIsLan if the session can be joined by LAN devices
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Network")
-		void StartServer(const int NumebrOfPlayers = 4, const bool bIsLan = true);
+		void StartSession(const int NumebrOfPlayers = 4, const bool bIsLan = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Network")
+		void FindSessions();
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Network")
+		void JoinSession_K(FOnlineSessionSearchResult_BP SearchResult);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Network")
+		void DestroySession();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category= "Kizu|Network")
+		void OnFindSessions(const TArray<FOnlineSessionSearchResult_BP> &SearchResults);
 };

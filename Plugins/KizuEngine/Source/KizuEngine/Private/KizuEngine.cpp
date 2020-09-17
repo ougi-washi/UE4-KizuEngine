@@ -20,3 +20,12 @@ void FKizuEngineModule::ShutdownModule()
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FKizuEngineModule, KizuEngine)
+
+//General Log
+DEFINE_LOG_CATEGORY(LogKizu);
+
+//Logging during sessions and game Initialization phase
+DEFINE_LOG_CATEGORY(LogKizuInit);
+
+//Logging for your AI system
+DEFINE_LOG_CATEGORY(LogKizuAI);

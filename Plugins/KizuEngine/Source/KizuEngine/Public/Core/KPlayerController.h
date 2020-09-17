@@ -14,6 +14,5 @@ class KIZUENGINE_API AKPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = "Kizu")
-		bool CreateSession(int32 playerCount);
+
 };
