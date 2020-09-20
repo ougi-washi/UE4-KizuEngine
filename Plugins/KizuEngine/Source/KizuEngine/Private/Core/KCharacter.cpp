@@ -46,6 +46,23 @@ void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
 	CharacterData.CurrentEnergy = inValue;
 }
 
+void AKCharacter::ServerApplyDamage_Implementation(const float Damage, FDamageEvent const& DamageEvent)
+{
+	
+}
+
+bool AKCharacter::ServerApplyDamage_Validate(const float Damage, FDamageEvent const& DamageEvent)
+{
+	return (Damage > 0);
+}
+
+float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+
+	ServerSetCurrentHealth(CharacterData.CurrentHealth - Damage);
+	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}
+
 void AKCharacter::OnRep_CharacterData()
 {
 	OnCurrentHealthChange_Native();
@@ -67,6 +84,7 @@ void AKCharacter::ExecuteDeathEvent_Native()
 		MontagePlay_Replicated(DeathMontage);
 	ExecuteDeathEvent();
 }
+
 
 // Called every frame
 void AKCharacter::Tick(float DeltaTime)

@@ -67,8 +67,20 @@ public:
 	/** Sets the character current health.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentHealth(const float& inValue);
+	/** Sets the character current energy.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentEnergy(const float& inValue);
+
+	/**
+	 * Character Combat functionalities
+	 */
+
+	/** Apply damage on server (replicated).*/
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Damage")
+	void ServerApplyDamage(const float Damage, FDamageEvent const& DamageEvent);
+	
+	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 
 	/** RepNotify for changes made to current health.*/
 	UFUNCTION()
@@ -83,6 +95,7 @@ public:
 	void ExecuteDeathEvent();
 	virtual void ExecuteDeathEvent_Native();
 	
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
