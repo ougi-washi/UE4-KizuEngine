@@ -31,37 +31,41 @@ void AKCharacter::BeginPlay()
 	
 }
 
-void AKCharacter::OnRep_CharacterData()
+void AKCharacter::ServerSetCharacterData_Implementation(const FCharacterData& inCharacterData)
 {
-	OnCharacterDataUpdate();
+	CharacterData = inCharacterData;
 }
 
-void AKCharacter::OnCharacterDataUpdate()
+void AKCharacter::ServerSetCurrentHealth_Implementation(const float& inValue)
 {
-	//Client-specific functionality
-	if (IsLocallyControlled())
-	{
-		FString healthMessage = FString::Printf(TEXT("You now have %f health remaining."), CharacterData.CurrentHealth);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, healthMessage);
+	CharacterData.CurrentHealth = inValue;
+}
 
-		if (CharacterData.CurrentHealth <= 0)
-		{
-			FString deathMessage = FString::Printf(TEXT("You have been killed."));
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, deathMessage);
-		}
+void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
+{
+	CharacterData.CurrentEnergy = inValue;
+}
+
+void AKCharacter::OnRep_CharacterData()
+{
+	OnCurrentHealthChange_Native();
+
+	if (CharacterData.CurrentHealth <= 0.f) {
+		ExecuteDeathEvent_Native();
 	}
+}
 
-	//Server-specific functionality
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		FString healthMessage = FString::Printf(TEXT("%s now has %f health remaining."), *GetFName().ToString(), CharacterData.CurrentHealth);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, healthMessage);
-	}
+void AKCharacter::OnCurrentHealthChange_Native()
+{
 
-	//Functions that occur on all machines. 
-	/*
-		Any special functionality that should occur as a result of damage or death should be placed here.
-	*/
+	OnCurrentHealthChange();
+}
+
+void AKCharacter::ExecuteDeathEvent_Native()
+{
+	if (bPlayDeathMontage && DeathMontage)
+		MontagePlay_Replicated(DeathMontage);
+	ExecuteDeathEvent();
 }
 
 // Called every frame
