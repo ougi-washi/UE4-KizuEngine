@@ -8,6 +8,23 @@
 #include "Net/UnrealNetwork.h"
 #include "KCharacter.generated.h"
 
+
+USTRUCT(BlueprintType)
+struct FResource {
+	GENERATED_USTRUCT_BODY()
+
+public:
+	/** The custom resource name */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	FString Name = "None";
+	/** The custom resource max value */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	float MaxValue = 100.f;
+	/** The custom resource current value */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	float CurrentValue = 100.f;
+};
+
 USTRUCT(BlueprintType)
 struct FCharacterData 
 {
@@ -27,7 +44,9 @@ public:
 	/** The character current energy. When reduced to 0, they have some limitations. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float CurrentEnergy = 100.f;
-
+	/** Custom resources array (Examples: Energy, Mana, Armors..) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	TArray<FResource> Resources;
 };
 
 UCLASS()
@@ -58,7 +77,7 @@ protected:
 public:	
 
 	/**
-	 * General Character Data Functions
+	 * General Character Data functionalities
 	 */
 
 	/** Sets the character data during the initialization or to use when changing multiple variables.*/
@@ -70,17 +89,27 @@ public:
 	/** Sets the character current energy.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentEnergy(const float& inValue);
+	/** Sets the character current energy.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void ServerSetCurrentResource(const FString& ResourceName, const float& inValue);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	FResource GetResource(const FString Name);
+
 
 	/**
 	 * Character Combat functionalities
 	 */
 
-	/** Apply damage on server (replicated).*/
+	/** Apply damage to an Actor (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Damage")
-	void ServerApplyDamage(const float Damage, FDamageEvent const& DamageEvent);
+	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 	
 	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+
+	/**
+	 * Character Resources management
+	 */
 
 	/** RepNotify for changes made to current health.*/
 	UFUNCTION()
@@ -95,6 +124,8 @@ public:
 	void ExecuteDeathEvent();
 	virtual void ExecuteDeathEvent_Native();
 	
+
+
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -137,6 +168,7 @@ public:
 	 */
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void MulticastMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
+
 
 
 };

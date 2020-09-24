@@ -20,7 +20,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	//Replicate current health.
+	//Replicate Character stats.
 	DOREPLIFETIME(AKCharacter, CharacterData);
 }
 
@@ -39,6 +39,12 @@ void AKCharacter::ServerSetCharacterData_Implementation(const FCharacterData& in
 void AKCharacter::ServerSetCurrentHealth_Implementation(const float& inValue)
 {
 	CharacterData.CurrentHealth = inValue;
+
+	OnCurrentHealthChange_Native();
+
+	if (CharacterData.CurrentHealth <= 0.f) {
+		ExecuteDeathEvent_Native();
+	}
 }
 
 void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
@@ -46,30 +52,34 @@ void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
 	CharacterData.CurrentEnergy = inValue;
 }
 
-void AKCharacter::ServerApplyDamage_Implementation(const float Damage, FDamageEvent const& DamageEvent)
+void AKCharacter::ServerSetCurrentResource_Implementation(const FString& ResourceName, const float& inValue)
 {
-	
+	for (FResource &Resource : CharacterData.Resources) {
+		if (Resource.Name == ResourceName)
+			Resource.CurrentValue = inValue;
+	}
 }
 
-bool AKCharacter::ServerApplyDamage_Validate(const float Damage, FDamageEvent const& DamageEvent)
+void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
+{
+	UGameplayStatics::ApplyDamage(Target, Damage, GetController(), this, DamageType);
+}
+
+bool AKCharacter::ServerApplyDamage_Validate(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	return (Damage > 0);
 }
 
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-
 	ServerSetCurrentHealth(CharacterData.CurrentHealth - Damage);
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void AKCharacter::OnRep_CharacterData()
 {
-	OnCurrentHealthChange_Native();
 
-	if (CharacterData.CurrentHealth <= 0.f) {
-		ExecuteDeathEvent_Native();
-	}
+
 }
 
 void AKCharacter::OnCurrentHealthChange_Native()
