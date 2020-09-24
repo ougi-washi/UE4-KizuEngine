@@ -52,12 +52,91 @@ void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
 	CharacterData.CurrentEnergy = inValue;
 }
 
-void AKCharacter::ServerSetCurrentResource_Implementation(const FString& ResourceName, const float& inValue)
+void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float& inValue)
 {
-	for (FResource &Resource : CharacterData.Resources) {
+	for (FResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName)
 			Resource.CurrentValue = inValue;
 	}
+}
+
+
+bool AKCharacter::GetResource(const FString ResourceName, FResource& ResultResource)
+{
+	for (FResource& Resource : CharacterData.Resources) {
+		if (Resource.Name == ResourceName) {
+			ResultResource = Resource;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AKCharacter::GetResourceIndex(const FString ResourceName, int& ResourceIndex)
+{
+	int Index = 0;
+	for (FResource& Resource : CharacterData.Resources) {
+		if (Resource.Name == ResourceName) {
+			ResourceIndex = Index;
+			return true;
+		}
+		Index++;
+	}
+	return false;
+}
+
+bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& ResultValue)
+{
+	FResource Resource;
+	if (GetResource(ResourceName, Resource)) {
+		ResultValue = Resource.CurrentValue;
+		return true;
+	}
+	return false;
+}
+
+
+
+bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGain)
+{
+	FResource Resource;
+	if (GetResource(ResourceName, Resource)) {
+
+		float FinalValue = Resource.CurrentValue + ValueToGain;
+		if (FinalValue > Resource.MaxValue)
+			FinalValue = Resource.MaxValue;
+		ServerSetCurrentResource(ResourceName, FinalValue);
+
+		OnResourceGain_Native(ResourceName, FinalValue);
+		return true;
+	}
+	return false;
+}
+
+bool AKCharacter::ConsumeResource(const FString ResourceName, const float ValueToConsume)
+{
+	FResource Resource;
+	if (GetResource(ResourceName, Resource)) {
+
+		float FinalValue = Resource.CurrentValue - ValueToConsume;
+		if (FinalValue < 0 && !Resource.bCanBeBelowZero)
+			FinalValue = 0;
+		ServerSetCurrentResource(ResourceName, FinalValue);
+
+		OnResourceConsumption_Native(ResourceName, FinalValue);
+		return true;
+	}
+	return false;
+}
+
+void AKCharacter::OnResourceGain_Native(const FString& ResourceName, const float& Value)
+{
+	OnResourceGain(ResourceName, Value);
+}
+
+void AKCharacter::OnResourceConsumption_Native(const FString& ResourceName, const float& Value)
+{
+	OnResourceConsumption(ResourceName, Value);
 }
 
 void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
@@ -78,8 +157,6 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 
 void AKCharacter::OnRep_CharacterData()
 {
-
-
 }
 
 void AKCharacter::OnCurrentHealthChange_Native()

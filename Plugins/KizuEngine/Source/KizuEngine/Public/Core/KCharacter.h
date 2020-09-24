@@ -23,6 +23,8 @@ public:
 	/** The custom resource current value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float CurrentValue = 100.f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	bool bCanBeBelowZero = false;
 };
 
 USTRUCT(BlueprintType)
@@ -93,8 +95,21 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentResource(const FString& ResourceName, const float& inValue);
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
-	FResource GetResource(const FString Name);
-
+	bool GetResource(const FString ResourceName, FResource& ResultResource);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	bool GetResourceIndex(const FString ResourceName, int& ResourceIndex);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	bool GetResourceCurrentValue(const FString ResourceName, float& ResultValue);
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
+	bool GainResource(const FString ResourceName, const float ValueToGain = 10);
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
+	bool ConsumeResource(const FString ResourceName, const float ValueToConsume = 10);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
+	void OnResourceGain(const FString& ResourceName, const float& Value);
+	virtual void OnResourceGain_Native(const FString& ResourceName, const float& Value);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
+	void OnResourceConsumption(const FString& ResourceName, const float& Value);
+	virtual void OnResourceConsumption_Native(const FString& ResourceName, const float& Value);
 
 	/**
 	 * Character Combat functionalities
