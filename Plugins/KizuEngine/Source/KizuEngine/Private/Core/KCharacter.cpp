@@ -151,6 +151,8 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
+
+
 void AKCharacter::OnRep_CharacterData()
 {
 }
@@ -188,11 +190,11 @@ bool AKCharacter::GetIsNetworked()
 	return (!UKismetSystemLibrary::IsStandalone(this));
 }
 
-void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters /*= FActorSpawnParameters()*/)
+void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransform& Transform)
 {
 	UWorld* World = GetWorld();
 	if (World) {
-		World->SpawnActor(Class, Location, Rotation, SpawnParameters);
+		LastSpawnedActor = World->SpawnActor<AActor>(Class, Transform);
 	}
 }
 

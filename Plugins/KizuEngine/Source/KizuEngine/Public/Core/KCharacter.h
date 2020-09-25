@@ -62,6 +62,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition="bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
 	UAnimMontage* DeathMontage;
 
+
 	// Sets default values for this character's properties
 	AKCharacter();
 	/** Property replication */
@@ -69,6 +70,10 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	// Temp Actor pointer to the last spawned Actor.
+	AActor* LastSpawnedActor;
+
 
 public:	
 
@@ -92,7 +97,7 @@ public:
 	* Replicated Actor Spawn
 	*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
-	void ServerSpawnActor(UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters());
+	void ServerSpawnActor(UClass* Class, const FTransform& Transform);
 
 
 
