@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "KizuEngine.h"
+#include "Engine/World.h"
 #include "Core/KCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -182,9 +183,17 @@ void AKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 }
 
-uint8 AKCharacter::GetIsNetworked()
+bool AKCharacter::GetIsNetworked()
 {
 	return (!UKismetSystemLibrary::IsStandalone(this));
+}
+
+void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters /*= FActorSpawnParameters()*/)
+{
+	UWorld* World = GetWorld();
+	if (World) {
+		World->SpawnActor(Class, Location, Rotation, SpawnParameters);
+	}
 }
 
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)

@@ -72,8 +72,34 @@ protected:
 
 public:	
 
+
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 	/**
-	 * General Character Data functionalities
+	 * General functionalities
+	 */
+
+	 /**
+	  * Returns Checks if the player is networked
+	  * @return True if the player is networked, false if it's a standalone object
+	  */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Network")
+	bool GetIsNetworked();
+	/*
+	* Replicated Actor Spawn
+	*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
+	void ServerSpawnActor(UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters());
+
+
+
+
+
+	/**
+	 * Character Data functionalities
 	 */
 
 	 /** RepNotify for changes made to current health.*/
@@ -157,16 +183,6 @@ public:
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	/**
-	 * Returns Checks if the player is networked
-	 * @return True if the player is networked, false if it's a standalone object
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Network")
-	uint8 GetIsNetworked();
 
 	/**
 	 * Character Montage and Animation Functionalities
