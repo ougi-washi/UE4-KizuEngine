@@ -47,11 +47,6 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float& inValue)
 	}
 }
 
-void AKCharacter::ServerSetCurrentEnergy_Implementation(const float& inValue)
-{
-	CharacterData.CurrentEnergy = inValue;
-}
-
 void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float& inValue)
 {
 	for (FResource& Resource : CharacterData.Resources) {
