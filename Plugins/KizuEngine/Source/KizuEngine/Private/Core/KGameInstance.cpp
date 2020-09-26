@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KizuEngine Copyright (c) 2019 Jed Fakhfekh. This software is released under the MIT License.
 
 
 #include "Core/KGameInstance.h"

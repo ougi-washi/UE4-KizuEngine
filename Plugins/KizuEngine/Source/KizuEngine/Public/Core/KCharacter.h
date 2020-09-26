@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KizuEngine Copyright (c) 2019 Jed Fakhfekh. This software is released under the MIT License.
 
 #pragma once
 
@@ -16,15 +16,15 @@ struct FResource {
 public:
 	/** The custom resource name */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	FString Name = "None";
+		FString Name = "None";
 	/** The custom resource max value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float MaxValue = 100.f;
+		float MaxValue = 100.f;
 	/** The custom resource current value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float CurrentValue = 100.f;
+		float CurrentValue = 100.f;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	bool bCanBeBelowZero = false;
+		bool bCanBeBelowZero = false;
 };
 
 USTRUCT(BlueprintType)
@@ -44,6 +44,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	TArray<FResource> Resources;
 };
+
+//class AKAbility;
 
 UCLASS()
 class KIZUENGINE_API AKCharacter : public ACharacter
@@ -72,7 +74,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	// Temp Actor pointer to the last spawned Actor.
-	AActor* LastSpawnedActor;
+	AActor* LastSpawnedActorRef;
 
 
 public:	
@@ -98,10 +100,6 @@ public:
 	*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
 	void ServerSpawnActor(UClass* Class, const FTransform& Transform);
-
-
-
-
 
 	/**
 	 * Character Data functionalities
@@ -184,10 +182,11 @@ public:
 	 */
 
 	/** Apply damage to an Actor (replicated).*/
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Damage")
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
+	//UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
+	//void ExecuteAbility(TSubclassOf<AKAbility> Ability);
 
 	/**
 	 * Character Montage and Animation Functionalities

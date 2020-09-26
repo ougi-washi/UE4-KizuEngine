@@ -1,10 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KizuEngine Copyright (c) 2019 Jed Fakhfekh. This software is released under the MIT License.
 
+
+#include "Core/KCharacter.h"
 #include "KizuEngine.h"
 #include "Engine/World.h"
-#include "Core/KCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -194,7 +196,7 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 {
 	UWorld* World = GetWorld();
 	if (World) {
-		LastSpawnedActor = World->SpawnActor<AActor>(Class, Transform);
+		LastSpawnedActorRef = World->SpawnActor<AActor>(Class, Transform);
 	}
 }
 
