@@ -45,7 +45,7 @@ public:
 	TArray<FResource> Resources;
 	/** Faction to define either it's an enemy or an ally to another Faction */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	int Faction = 0;
+	uint8 Faction = 0;
 };
 
 //class AKAbility;
@@ -76,7 +76,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// Temp Actor pointer to the last spawned Actor.
+	// Temp pointer to the last spawned Actor.
+	UPROPERTY(Replicated)
 	AActor* LastSpawnedActorRef;
 
 
@@ -124,10 +125,13 @@ public:
 	void ServerSetCharacterData(const FCharacterData& inCharacterData);
 	/** Sets the character current health.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
-	void ServerSetCurrentHealth(const float& inValue);
+	void ServerSetCurrentHealth(const float inValue);
 	/** Sets the character current energy.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
-	void ServerSetCurrentResource(const FString& ResourceName, const float& inValue);
+	void ServerSetCurrentResource(const FString &ResourceName, const float inValue);
+	/** Sets the character Faction.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void ServerSetFaction(const uint8 NewFaction);
 	/**
 	* Get a resource from the character data
 	* @param ResourceName The resource name to look for in the Array

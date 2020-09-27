@@ -28,7 +28,7 @@ struct FSpellEffect
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
-	TEnumAsByte<ESpellTriggerType> SpellTriggerType;
+	TEnumAsByte<ESpellTriggerType> SpellTriggerType = ESpellTriggerType::OnHit;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	TEnumAsByte<EResourceEffectType> ResourceEffectType = EResourceEffectType::Consumption;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
@@ -61,6 +61,9 @@ public:
 	/** The effects that are going to be executed on the trigger event of the Spell.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Spell")
 	TArray<FSpellEffect> Effects;
+	/** If the Spell will affect the target only once. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
+	bool bAffectOnce = true;
 };
 
 class USphereComponent;
@@ -74,6 +77,8 @@ class KIZUENGINE_API AKSpell : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AKSpell();
+	/** Property replication */
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Shape component used for collision */
 	UPROPERTY(Category = TriggerBase, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -81,6 +86,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Data")
 	FSpellData SpellData;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Data")
+	TArray<AActor*> AffectedActors;
 
 protected:
 	// Called when the game starts or when spawned
@@ -101,17 +109,24 @@ public:
 	bool GetOverlappingActorsByTag(TArray<AActor*> &OverlappingActors, const FName PrimitiveComponentTag);
 
 	UFUNCTION()
-	virtual void OnCollisionBeingOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void OnCollisionBeginOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Spell|Collision")
-	void OnCollisionBeingOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnCollisionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Effect")
-	static void ExecuteSpellEffectByCollision(FSpellEffect SpellEffect, UPrimitiveComponent* inCollisionComponent);
+	void ExecuteSpellEffectByCollision(FSpellEffect &SpellEffect, UPrimitiveComponent* inCollisionComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Effect")
-	static void ExecuteSpellEffectOnCharacter(FSpellEffect SpellEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
+	void ExecuteSpellEffectOnCharacter(FSpellEffect &SpellEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Effect")
 	void ExecuteSpellEffects(TArray<FSpellEffect> SpellEffects);
+
+	UFUNCTION(BlueprintCallable, Server, Unreliable,Category = "Kizu|Spell|Effect")
+	void ServerResetAffectedActors();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Spell|Effect")
+	void OnFinishExecuteSpellEffects();
+	virtual void OnFinishExecuteSpellEffects_Native();
 };

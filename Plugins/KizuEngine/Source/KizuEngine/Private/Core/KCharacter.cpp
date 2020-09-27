@@ -25,6 +25,8 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 	//Replicate Character stats.
 	DOREPLIFETIME(AKCharacter, CharacterData);
+	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
+
 }
 
 // Called when the game starts or when spawned
@@ -39,7 +41,7 @@ void AKCharacter::ServerSetCharacterData_Implementation(const FCharacterData& in
 	CharacterData = inCharacterData;
 }
 
-void AKCharacter::ServerSetCurrentHealth_Implementation(const float& inValue)
+void AKCharacter::ServerSetCurrentHealth_Implementation(const float inValue)
 {
 	CharacterData.CurrentHealth = inValue;
 
@@ -50,7 +52,7 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float& inValue)
 	}
 }
 
-void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float& inValue)
+void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float inValue)
 {
 	for (FResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName)
@@ -58,6 +60,11 @@ void AKCharacter::ServerSetCurrentResource_Implementation(const FString &Resourc
 	}
 }
 
+
+void AKCharacter::ServerSetFaction_Implementation(const uint8 NewFaction)
+{
+	CharacterData.Faction = NewFaction;
+}
 
 bool AKCharacter::GetResource(const FString ResourceName, FResource& ResultResource)
 {
@@ -196,10 +203,12 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 {
 	UWorld* World = GetWorld();
 	if (World) {
-		LastSpawnedActorRef = World->SpawnActor<AActor>(Class, Transform);
-		LastSpawnedActorRef->SetOwner(this);
+		FActorSpawnParameters ActorSpawnParams;
+		ActorSpawnParams.Owner = this;
+		LastSpawnedActorRef = World->SpawnActor<AActor>(Class, Transform, ActorSpawnParams);
 	}
 }
+
 
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {

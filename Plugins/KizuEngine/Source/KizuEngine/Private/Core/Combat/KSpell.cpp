@@ -3,6 +3,7 @@
 
 #include "Core/Combat/KSpell.h"
 #include "KizuEngine.h"
+#include "Net/UnrealNetwork.h"
 #include "Core/KCharacter.h"
 #include "Components/SphereComponent.h"
 
@@ -16,15 +17,21 @@ AKSpell::AKSpell()
 	if (CollisionComponent) {
 		SetRootComponent(CollisionComponent);
 		CollisionComponent->bHiddenInGame = false;
-		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AKSpell::OnCollisionBeingOverlap);
+		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AKSpell::OnCollisionBeginOverlap_Native);
 	}
+}
+
+void AKSpell::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	//DOREPLIFETIME(AKSpell, AffectedActors);
 }
 
 // Called when the game starts or when spawned
 void AKSpell::BeginPlay()
 {
 	Super::BeginPlay();
-	ExecuteSpellEffects(GetAllOnSpawnEffects());
+	if (HasAuthority())
+		ExecuteSpellEffects(GetAllOnSpawnEffects());
 }
 
 // Called every frame
@@ -33,7 +40,6 @@ void AKSpell::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-
 
 TArray<FSpellEffect> AKSpell::GetAllOnSpawnEffects()
 {
@@ -77,37 +83,49 @@ bool AKSpell::GetOverlappingActorsByTag(TArray<AActor*> &OverlappingActors, cons
 	return false;
 }
 
-void AKSpell::OnCollisionBeingOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AKSpell::OnCollisionBeginOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	ExecuteSpellEffects(GetAllOnHitEffects());
-	OnCollisionBeingOverlap(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+	if (HasAuthority())
+		ExecuteSpellEffects(GetAllOnHitEffects());
+	OnCollisionBeginOverlap(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 }
 
-void AKSpell::ExecuteSpellEffectByCollision(FSpellEffect SpellEffect, UPrimitiveComponent* inCollisionComponent)
+void AKSpell::ExecuteSpellEffectByCollision(FSpellEffect &SpellEffect, UPrimitiveComponent* inCollisionComponent)
 {
 	TArray<AActor*> OverlappingActors;
 	inCollisionComponent->GetOverlappingActors(OverlappingActors);
-	int32 OwnerIndex = OverlappingActors.Find(inCollisionComponent->GetOwner()->GetOwner());
-	UE_LOG(LogKizu, Warning, TEXT("Spell Owner : %s"), *inCollisionComponent->GetOwner()->GetOwner()->GetName());
-	
 	for (AActor* TempActor : OverlappingActors)
 	{
-		AKCharacter* OtherCharacter = Cast<AKCharacter>(TempActor);
-		AKCharacter* OwnerCharacter = Cast<AKCharacter>(inCollisionComponent->GetOwner()->GetOwner());
-		if (SpellEffect.bAffectOwner && TempActor == OwnerCharacter) {
-			ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
+		// Check if the spell is supposed to affect the overlapping actor only once. (This actor will be skipped incase it's not supposed to be affected again by this same effect)
+		if (AffectedActors.Find(TempActor) > -1 && SpellData.bAffectOnce) {
+			// Can't be affected
 		}
-		if (SpellEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) {
-			ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
-		}
-		if (SpellEffect.bAffectOwnerFaction && OtherCharacter->CharacterData.Faction == OwnerCharacter->CharacterData.Faction)
-		{
-			ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
+		else {
+			// Initiate effect on the actor
+			AKCharacter* OtherCharacter = Cast<AKCharacter>(TempActor);
+			AKCharacter* OwnerCharacter = Cast<AKCharacter>(GetOwner());
+
+			if (!OtherCharacter || !OwnerCharacter)
+				return;
+
+			if (SpellEffect.bAffectOwner && TempActor == OwnerCharacter) {
+				UE_LOG(LogKizu, Warning, TEXT("Target is Owner"));
+				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
+			}
+			if (SpellEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) {
+				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
+				UE_LOG(LogKizu, Warning, TEXT("Target is from another faction"));
+			}
+			if (SpellEffect.bAffectOwnerFaction && OtherCharacter->CharacterData.Faction == OwnerCharacter->CharacterData.Faction)
+			{
+				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
+				UE_LOG(LogKizu, Warning, TEXT("Target is from same faction"));
+			}
 		}
 	}		
 }
 
-void AKSpell::ExecuteSpellEffectOnCharacter(FSpellEffect SpellEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter)
+void AKSpell::ExecuteSpellEffectOnCharacter(FSpellEffect &SpellEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter)
 {
 	if (SpellEffect.ResourceEffectType == EResourceEffectType::Consumption) {
 		if (SpellEffect.bHealthResource) {
@@ -125,6 +143,7 @@ void AKSpell::ExecuteSpellEffectOnCharacter(FSpellEffect SpellEffect, AKCharacte
 			TargetCharacter->GainResource(SpellEffect.ResourceName, SpellEffect.Value);
 		}
 	}
+	AffectedActors.AddUnique(TargetCharacter);
 }
 
 void AKSpell::ExecuteSpellEffects(TArray<FSpellEffect> SpellEffects)
@@ -133,4 +152,16 @@ void AKSpell::ExecuteSpellEffects(TArray<FSpellEffect> SpellEffects)
 	{
 		ExecuteSpellEffectByCollision(SpellEffect, CollisionComponent);
 	}
+	OnFinishExecuteSpellEffects_Native();
+}
+
+void AKSpell::ServerResetAffectedActors_Implementation()
+{
+	if (HasAuthority())
+		AffectedActors.Empty();
+}
+
+void AKSpell::OnFinishExecuteSpellEffects_Native()
+{
+	OnFinishExecuteSpellEffects();
 }
