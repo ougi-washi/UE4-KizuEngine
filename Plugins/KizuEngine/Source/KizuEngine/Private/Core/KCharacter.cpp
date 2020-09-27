@@ -197,6 +197,7 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 	UWorld* World = GetWorld();
 	if (World) {
 		LastSpawnedActorRef = World->SpawnActor<AActor>(Class, Transform);
+		LastSpawnedActorRef->SetOwner(this);
 	}
 }
 

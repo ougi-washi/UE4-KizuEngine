@@ -43,6 +43,9 @@ public:
 	/** Custom resources array (Examples: Energy, Mana, Armors..) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	TArray<FResource> Resources;
+	/** Faction to define either it's an enemy or an ally to another Faction */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	int Faction = 0;
 };
 
 //class AKAbility;
