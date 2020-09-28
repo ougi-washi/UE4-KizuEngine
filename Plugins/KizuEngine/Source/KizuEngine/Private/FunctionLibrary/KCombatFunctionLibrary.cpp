@@ -16,8 +16,10 @@ AKBuff* UKCombatFunctionLibrary::SpawnBuff(AActor* OwnerActor, AActor* TargetAct
 				NewBuff->ServerSetOwnerActor(OwnerActor);
 				NewBuff->ServerSetTargetActor(TargetActor);
 				UGameplayStatics::FinishSpawningActor(NewBuff, NewBuff->GetTransform());
+				return NewBuff;
 			}
 		}
 	}
-	else UE_LOG(LogKizu, Warning, TEXT("Unable to spawn the Buff due to invalid Owner or Target."))
+	else UE_LOG(LogKizu, Warning, TEXT("Unable to spawn the Buff due to invalid Owner or Target."));
+	return nullptr;
 }

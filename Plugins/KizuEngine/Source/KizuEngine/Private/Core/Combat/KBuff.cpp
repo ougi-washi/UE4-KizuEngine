@@ -29,7 +29,7 @@ void AKBuff::BeginPlay()
 	Super::BeginPlay();
 	if (HasAuthority()) {
 		GetWorld()->GetTimerManager().SetTimer(TickingTimerHandle, this, &AKBuff::TriggerTicking, BuffData.TickingRate, true, BuffData.TickingDelay);
-		GetWorld()->GetTimerManager().SetTimer(DurationHandle, this, &AKBuff::TriggerDurationEnd, BuffData.Duration, false, 0);
+		GetWorld()->GetTimerManager().SetTimer(DurationHandle, this, &AKBuff::TriggerDurationEnd, 0, false, BuffData.Duration);
 		if (BuffData.bAttachToTargetActor && TargetActor)
 			MulticastAttachToTargetActor(BuffData.SocketName);
 	}
@@ -44,6 +44,7 @@ void AKBuff::Tick(float DeltaTime)
 void AKBuff::TriggerTicking()
 {
 	ExecuteAllBuffEffects();
+	OnBuffTick();
 }
 
 void AKBuff::TriggerDurationEnd()
@@ -65,7 +66,7 @@ void AKBuff::ServerSetTargetActor_Implementation(AActor* InTargetActor)
 void AKBuff::ServerSetOwnerActor_Implementation(AActor* InOwnerActor)
 {
 	OwnerActor = InOwnerActor;
-	SetOwner(InOwnerActor)
+	SetOwner(InOwnerActor);
 }
 
 void AKBuff::ExecuteAllBuffEffects()

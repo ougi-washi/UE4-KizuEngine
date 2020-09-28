@@ -90,16 +90,18 @@ public:
 	// Called when the duration of the Buff is reached.
 	UFUNCTION()
 	void TriggerDurationEnd();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Buff")
+	void OnBuffTick();
 	UFUNCTION(Server, BlueprintCallable, Reliable, Category = "Kizu|Buff")
 	void ServerSetTargetActor(AActor* InTargetActor);
 	UFUNCTION(Server, BlueprintCallable, Reliable, Category = "Kizu|Buff")
 	void ServerSetOwnerActor(AActor* InOwnerActor);
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff|Effect")
-	void ExecuteAllBuffEffects();
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff|Effect")
-	void ExecuteBuffEffectOnCharacter(FBuffEffect& BuffEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
 	UFUNCTION(Server, BlueprintCallable, Unreliable, Category = "Kizu|Buff")
 	void ServerAttachToTargetActor(const FName& SocketName);
 	UFUNCTION(NetMulticast, BlueprintCallable, Unreliable, Category = "Kizu|Buff")
 	void MulticastAttachToTargetActor(const FName& SocketName);
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff|Effect")
+	void ExecuteAllBuffEffects();
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff|Effect")
+	void ExecuteBuffEffectOnCharacter(FBuffEffect& BuffEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
 };
