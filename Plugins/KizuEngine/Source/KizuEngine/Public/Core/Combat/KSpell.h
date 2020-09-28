@@ -7,6 +7,10 @@
 #include "GameFramework/Actor.h"
 #include "KSpell.generated.h"
 
+class USphereComponent;
+class AKCharacter;
+class AKBuff;
+
 UENUM(BlueprintType)
 enum ESpellTriggerType
 {
@@ -31,6 +35,9 @@ public:
 	FString ResourceName = "None";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	float Value = 10.f;
+	/** The effects that are going to be executed on the trigger event of the Spell.*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Spell")
+	TArray<TSubclassOf<AKBuff>> Buffs;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	bool bAffectOtherFaction = true;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
@@ -49,7 +56,7 @@ public:
 	/** The name of the Spell.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
 	FString Name = "None";
-	/** If the Spell is custom.*/
+	/** If the Spell is custom or relying on the base preset.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
 	bool bUsePreset = true;
 	/** The effects that are going to be executed on the trigger event of the Spell.*/
@@ -66,8 +73,6 @@ public:
 	float TickingRate = 1.f;
 };
 
-class USphereComponent;
-class AKCharacter;
 
 UCLASS()
 class KIZUENGINE_API AKSpell : public AActor
@@ -81,7 +86,7 @@ public:
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Shape component used for collision */
-	UPROPERTY(Category = TriggerBase, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* CollisionComponent;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Data")
@@ -127,6 +132,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Effect")
 	void ExecuteSpellEffects(TArray<FSpellEffect> SpellEffects);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Spell|Buff")
+	void ServerSpawnBuff(AActor* OwnerActor, AActor* TargetActor, TSubclassOf<AKBuff> BuffToSpawn, const FTransform Transform);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Buff")
+	void ExecuteBuffOnCharacter(TSubclassOf<AKBuff> Buff, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spell|Buff")
+	void ExecuteBuffsOnCharacter(TArray<TSubclassOf<AKBuff>> Buffs, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
 
 	UFUNCTION(BlueprintCallable, Server, Unreliable,Category = "Kizu|Spell|Effect")
 	void ServerResetAffectedActors();

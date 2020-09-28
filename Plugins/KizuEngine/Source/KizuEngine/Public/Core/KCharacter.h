@@ -253,4 +253,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
 	void ServerSetTimeDilation(const float TimeDilation);
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Buff|Effect")
+	void MulticastSetTimeDilation(const float TimeDilation);
 };

@@ -3,8 +3,10 @@
 
 #include "Core/Combat/KSpell.h"
 #include "KizuEngine.h"
+#include "Core/Combat/KBuff.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/KCharacter.h"
+#include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Components/SphereComponent.h"
 
 // Sets default values
@@ -15,7 +17,6 @@ AKSpell::AKSpell()
 	bReplicates = true;
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	if (CollisionComponent) {
-		SetRootComponent(CollisionComponent);
 		CollisionComponent->bHiddenInGame = false;
 		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AKSpell::OnCollisionBeginOverlap_Native);
 	}
@@ -165,6 +166,31 @@ void AKSpell::ExecuteSpellEffects(TArray<FSpellEffect> SpellEffects)
 		ExecuteSpellEffectByCollision(SpellEffect, CollisionComponent);
 	}
 	OnFinishExecuteSpellEffects_Native();
+}
+
+void AKSpell::ServerSpawnBuff_Implementation(AActor* OwnerActor, AActor* TargetActor, TSubclassOf<AKBuff> BuffToSpawn, const FTransform Transform)
+{
+	UKCombatFunctionLibrary::SpawnBuff(OwnerActor, TargetActor, BuffToSpawn, Transform);
+}
+
+void AKSpell::ExecuteBuffOnCharacter(TSubclassOf<AKBuff> Buff, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter)
+{
+	if (!TargetCharacter || !OwnerCharacter) {
+		UE_LOG(LogKizu, Warning, TEXT("Unable to execute the Buff due to invalid Owner or Target."));
+		return;
+	}
+	ServerSpawnBuff(OwnerCharacter, TargetCharacter, Buff, GetTransform());
+}
+
+void AKSpell::ExecuteBuffsOnCharacter(TArray<TSubclassOf<AKBuff>> Buffs, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter)
+{
+	if (!TargetCharacter || !OwnerCharacter) {
+		UE_LOG(LogKizu, Warning, TEXT("Unable to execute the Buff due to invalid Owner or Target."));
+		return;
+	}
+	for (AKBuff* Buff : Buffs) {
+		ExecuteBuffOnCharacter(Buff, OwnerCharacter, TargetCharacter);
+	}
 }
 
 void AKSpell::ServerResetAffectedActors_Implementation()

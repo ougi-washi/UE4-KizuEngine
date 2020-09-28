@@ -16,7 +16,9 @@ UCLASS()
 class KIZUENGINE_API UKCombatFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-	
+
+public:
+
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
 	static AKBuff* SpawnBuff(AActor* OwnerActor, AActor* TargetActor, TSubclassOf<AKBuff> BuffToSpawn, const FTransform Transform);
 };

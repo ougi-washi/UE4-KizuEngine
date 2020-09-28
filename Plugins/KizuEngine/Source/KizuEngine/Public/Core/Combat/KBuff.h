@@ -92,6 +92,8 @@ public:
 	void TriggerDurationEnd();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Buff")
 	void OnBuffTick();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Buff")
+	void OnBuffEnd();
 	UFUNCTION(Server, BlueprintCallable, Reliable, Category = "Kizu|Buff")
 	void ServerSetTargetActor(AActor* InTargetActor);
 	UFUNCTION(Server, BlueprintCallable, Reliable, Category = "Kizu|Buff")

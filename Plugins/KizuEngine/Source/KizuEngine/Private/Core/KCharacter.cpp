@@ -265,6 +265,11 @@ void AKCharacter::MulticastMontagePlay_Implementation(UAnimMontage* Montage, con
 
 void AKCharacter::ServerSetTimeDilation_Implementation(const float TimeDilation)
 {
+	MulticastSetTimeDilation(TimeDilation);
+}
+
+void AKCharacter::MulticastSetTimeDilation_Implementation(const float TimeDilation)
+{
 	CustomTimeDilation = TimeDilation;
 }
 

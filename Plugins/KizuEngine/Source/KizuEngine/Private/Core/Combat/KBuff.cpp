@@ -29,7 +29,7 @@ void AKBuff::BeginPlay()
 	Super::BeginPlay();
 	if (HasAuthority()) {
 		GetWorld()->GetTimerManager().SetTimer(TickingTimerHandle, this, &AKBuff::TriggerTicking, BuffData.TickingRate, true, BuffData.TickingDelay);
-		GetWorld()->GetTimerManager().SetTimer(DurationHandle, this, &AKBuff::TriggerDurationEnd, 0, false, BuffData.Duration);
+		GetWorld()->GetTimerManager().SetTimer(DurationHandle, this, &AKBuff::TriggerDurationEnd, .1f, true, BuffData.Duration);
 		if (BuffData.bAttachToTargetActor && TargetActor)
 			MulticastAttachToTargetActor(BuffData.SocketName);
 	}
@@ -53,6 +53,8 @@ void AKBuff::TriggerDurationEnd()
 	if (BuffData.bUseTimeDilation && TargetCharacter) {
 		TargetCharacter->ServerSetTimeDilation(1);
 	}
+	OnBuffEnd();
+
 	GetWorld()->GetTimerManager().ClearTimer(TickingTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(DurationHandle);
 	Destroy(true, true);
