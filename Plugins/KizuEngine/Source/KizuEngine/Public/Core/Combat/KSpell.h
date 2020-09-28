@@ -1,11 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KizuEngine Copyright (c) 2019 Jed Fakhfekh. This software is released under the MIT License.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/Combat/KizuCombat.h"
 #include "GameFramework/Actor.h"
 #include "KSpell.generated.h"
-
 
 UENUM(BlueprintType)
 enum ESpellTriggerType
@@ -14,19 +14,13 @@ enum ESpellTriggerType
 	OnHit
 };
 
-UENUM(BlueprintType)
-enum EResourceEffectType
-{
-	Gain,
-	Consumption
-};
-
 USTRUCT(BlueprintType)
 struct FSpellEffect
 {
 	GENERATED_USTRUCT_BODY()
 
 public:
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	TEnumAsByte<ESpellTriggerType> SpellTriggerType = ESpellTriggerType::OnHit;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
@@ -54,7 +48,7 @@ public:
 
 	/** The name of the Spell.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
-	FString Name;
+	FString Name = "None";
 	/** If the Spell is custom.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
 	bool bUsePreset = true;
@@ -64,6 +58,12 @@ public:
 	/** If the Spell will affect the target only once. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
 	bool bAffectOnce = true;
+	/** If the spell is going to tick the effects. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell")
+	bool bTickEffects = false;
+	/** The ticking rate of the effects. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bTickEffects"), Category = "Kizu|Spell")
+	float TickingRate = 1.f;
 };
 
 class USphereComponent;
@@ -87,8 +87,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Data")
 	FSpellData SpellData;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Data")
+	UPROPERTY(BlueprintReadWrite, Category = "Kizu|Spell|Data")
 	TArray<AActor*> AffectedActors;
+
+	FTimerHandle TickingTimerHandle;
 
 protected:
 	// Called when the game starts or when spawned
@@ -98,6 +100,9 @@ public:
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION()
+		void TriggerTicking();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Spell|Collision")
 	TArray<FSpellEffect> GetAllOnSpawnEffects();

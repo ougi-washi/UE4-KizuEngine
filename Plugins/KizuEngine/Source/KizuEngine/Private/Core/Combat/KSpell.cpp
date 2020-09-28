@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KizuEngine Copyright (c) 2019 Jed Fakhfekh. This software is released under the MIT License.
 
 
 #include "Core/Combat/KSpell.h"
@@ -12,7 +12,7 @@ AKSpell::AKSpell()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	bReplicates = true;
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	if (CollisionComponent) {
 		SetRootComponent(CollisionComponent);
@@ -23,6 +23,8 @@ AKSpell::AKSpell()
 
 void AKSpell::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 	//DOREPLIFETIME(AKSpell, AffectedActors);
 }
 
@@ -30,15 +32,23 @@ void AKSpell::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 void AKSpell::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority())
+	if (HasAuthority()) {
 		ExecuteSpellEffects(GetAllOnSpawnEffects());
+		if (SpellData.bTickEffects)
+			GetWorld()->GetTimerManager().SetTimer(TickingTimerHandle, this, &AKSpell::TriggerTicking, SpellData.TickingRate, true);
+	}
 }
 
 // Called every frame
 void AKSpell::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
 
+void AKSpell::TriggerTicking()
+{
+	ServerResetAffectedActors();
+	ExecuteSpellEffects(GetAllOnHitEffects());
 }
 
 TArray<FSpellEffect> AKSpell::GetAllOnSpawnEffects()
@@ -96,7 +106,7 @@ void AKSpell::ExecuteSpellEffectByCollision(FSpellEffect &SpellEffect, UPrimitiv
 	inCollisionComponent->GetOverlappingActors(OverlappingActors);
 	for (AActor* TempActor : OverlappingActors)
 	{
-		// Check if the spell is supposed to affect the overlapping actor only once. (This actor will be skipped incase it's not supposed to be affected again by this same effect)
+		// Check if the spell is supposed to affect the overlapping actor only once. (This actor will be skipped in case it's not supposed to be affected again by this same effect)
 		if (AffectedActors.Find(TempActor) > -1 && SpellData.bAffectOnce) {
 			// Can't be affected
 		}
@@ -108,18 +118,16 @@ void AKSpell::ExecuteSpellEffectByCollision(FSpellEffect &SpellEffect, UPrimitiv
 			if (!OtherCharacter || !OwnerCharacter)
 				return;
 
-			if (SpellEffect.bAffectOwner && TempActor == OwnerCharacter) {
-				UE_LOG(LogKizu, Warning, TEXT("Target is Owner"));
+			if (SpellEffect.bAffectOwner && OtherCharacter == OwnerCharacter) {
 				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
 			}
 			if (SpellEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) {
 				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
-				UE_LOG(LogKizu, Warning, TEXT("Target is from another faction"));
 			}
-			if (SpellEffect.bAffectOwnerFaction && OtherCharacter->CharacterData.Faction == OwnerCharacter->CharacterData.Faction)
+			if ((SpellEffect.bAffectOwnerFaction && OtherCharacter->CharacterData.Faction == OwnerCharacter->CharacterData.Faction)
+				&& (OtherCharacter != OwnerCharacter))
 			{
 				ExecuteSpellEffectOnCharacter(SpellEffect, OwnerCharacter, OtherCharacter);
-				UE_LOG(LogKizu, Warning, TEXT("Target is from same faction"));
 			}
 		}
 	}		
@@ -130,17 +138,21 @@ void AKSpell::ExecuteSpellEffectOnCharacter(FSpellEffect &SpellEffect, AKCharact
 	if (SpellEffect.ResourceEffectType == EResourceEffectType::Consumption) {
 		if (SpellEffect.bHealthResource) {
 			OwnerCharacter->ServerApplyDamage(TargetCharacter, SpellEffect.Value, NULL);
+			UE_LOG(LogKizu, Log, TEXT("<%s> damages <%s> by <%f> with spell <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, SpellEffect.Value, *SpellData.Name);
 		}
 		else {
 			TargetCharacter->ConsumeResource(SpellEffect.ResourceName, SpellEffect.Value);
+			UE_LOG(LogKizu, Log, TEXT("<%s> drains <%s>'s <%s> by <%f> with spell <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpellEffect.ResourceName, SpellEffect.Value, *SpellData.Name);
 		}
 	}
 	if (SpellEffect.ResourceEffectType == EResourceEffectType::Gain) {
 		if (SpellEffect.bHealthResource) {
-			//OwnerCharacter->ServerApplyDamage(TargetCharacter, SpellEffect.Value, NULL); To implement healing here
+			TargetCharacter->GainHealth(SpellEffect.Value);
+			UE_LOG(LogKizu, Log, TEXT("<%s> heals <%s> by <%f> with spell <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, SpellEffect.Value, *SpellData.Name);
 		}
 		else {
 			TargetCharacter->GainResource(SpellEffect.ResourceName, SpellEffect.Value);
+			UE_LOG(LogKizu, Log, TEXT("<%s> recovers <%s>'s <%s> by <%f> with spell <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpellEffect.ResourceName, SpellEffect.Value, *SpellData.Name);
 		}
 	}
 	AffectedActors.AddUnique(TargetCharacter);

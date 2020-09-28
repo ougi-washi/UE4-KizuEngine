@@ -33,7 +33,9 @@ struct FCharacterData
 	GENERATED_USTRUCT_BODY()
 
 public:
-
+	/** The character name. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	FString Name = "None";
 	/** The character max health. The current health can never exceed this amount */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float MaxHealth = 100.f;
@@ -133,6 +135,13 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetFaction(const uint8 NewFaction);
 	/**
+	* Gain health on the server by checking the possible maximum.
+	* @param ValueToGain The value to add to the character health
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
+	bool GainHealth(const float ValueToGain = 10);
+	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	/**
 	* Get a resource from the character data
 	* @param ResourceName The resource name to look for in the Array
 	* @param ResultResource The resulting resource
@@ -173,7 +182,7 @@ public:
 	* @param Value The value gained
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
-	void OnResourceGain(const FString& ResourceName, const float& Value);
+		void OnResourceGain(const FString& ResourceName, const float& Value);
 	virtual void OnResourceGain_Native(const FString& ResourceName, const float& Value);
 	/**
 	* Event called when consuming a resource
@@ -181,8 +190,22 @@ public:
 	* @param Value The value consumed
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
-	void OnResourceConsumption(const FString& ResourceName, const float& Value);
+		void OnResourceConsumption(const FString& ResourceName, const float& Value);
 	virtual void OnResourceConsumption_Native(const FString& ResourceName, const float& Value);
+	/**
+	* Event called when gaining health
+	* @param Value The value gained
+	*/
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
+	void OnHealthGain(const float& Value);
+	virtual void OnHealthGain_Native(const float& Value);
+	/**
+	* Event called when losing health
+	* @param Value The value lost
+	*/
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
+	void OnHealthLoss(const float& Value);
+	virtual void OnHealthLoss_Native(const float& Value);
 
 	/**
 	 * Character Combat functionalities
@@ -191,7 +214,7 @@ public:
 	/** Apply damage to an Actor (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
-	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	//UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	//void ExecuteAbility(TSubclassOf<AKAbility> Ability);
 
@@ -227,4 +250,7 @@ public:
 	 */
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void MulticastMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
+	void ServerSetTimeDilation(const float TimeDilation);
 };

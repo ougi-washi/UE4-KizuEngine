@@ -16,7 +16,6 @@ AKCharacter::AKCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
-
 }
 
 void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -33,7 +32,6 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 void AKCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AKCharacter::ServerSetCharacterData_Implementation(const FCharacterData& inCharacterData)
@@ -64,6 +62,18 @@ void AKCharacter::ServerSetCurrentResource_Implementation(const FString &Resourc
 void AKCharacter::ServerSetFaction_Implementation(const uint8 NewFaction)
 {
 	CharacterData.Faction = NewFaction;
+}
+
+bool AKCharacter::GainHealth(const float ValueToGain /*= 10*/)
+{
+	if (ValueToGain < 0)
+		return false;
+	float FinalValue = CharacterData.CurrentHealth + ValueToGain;
+	if (FinalValue > CharacterData.MaxHealth)
+		FinalValue = CharacterData.MaxHealth;
+	ServerSetCurrentHealth(FinalValue);
+	OnHealthGain_Native(ValueToGain);
+	return true;
 }
 
 bool AKCharacter::GetResource(const FString ResourceName, FResource& ResultResource)
@@ -112,7 +122,7 @@ bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGa
 			FinalValue = Resource.MaxValue;
 		ServerSetCurrentResource(ResourceName, FinalValue);
 
-		OnResourceGain_Native(ResourceName, FinalValue);
+		OnResourceGain_Native(ResourceName, ValueToGain);
 		return true;
 	}
 	return false;
@@ -128,7 +138,7 @@ bool AKCharacter::ConsumeResource(const FString ResourceName, const float ValueT
 			FinalValue = 0;
 		ServerSetCurrentResource(ResourceName, FinalValue);
 
-		OnResourceConsumption_Native(ResourceName, FinalValue);
+		OnResourceConsumption_Native(ResourceName, ValueToConsume);
 		return true;
 	}
 	return false;
@@ -144,6 +154,16 @@ void AKCharacter::OnResourceConsumption_Native(const FString& ResourceName, cons
 	OnResourceConsumption(ResourceName, Value);
 }
 
+void AKCharacter::OnHealthGain_Native(const float& Value)
+{
+	OnHealthGain(Value);
+}
+
+void AKCharacter::OnHealthLoss_Native(const float& Value)
+{
+	OnHealthLoss(Value);
+}
+
 void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	UGameplayStatics::ApplyDamage(Target, Damage, GetController(), this, DamageType);
@@ -157,10 +177,9 @@ bool AKCharacter::ServerApplyDamage_Validate(AActor* Target, const float Damage,
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	ServerSetCurrentHealth(CharacterData.CurrentHealth - Damage);
+	OnHealthLoss_Native(Damage);
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
-
-
 
 void AKCharacter::OnRep_CharacterData()
 {
@@ -168,7 +187,6 @@ void AKCharacter::OnRep_CharacterData()
 
 void AKCharacter::OnCurrentHealthChange_Native()
 {
-
 	OnCurrentHealthChange();
 }
 
@@ -243,5 +261,10 @@ void AKCharacter::MulticastMontagePlay_Implementation(UAnimMontage* Montage, con
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!IsLocallyControlled() && AnimInstance)
 		AnimInstance->Montage_Play(Montage, Rate);
+}
+
+void AKCharacter::ServerSetTimeDilation_Implementation(const float TimeDilation)
+{
+	CustomTimeDilation = TimeDilation;
 }
 
