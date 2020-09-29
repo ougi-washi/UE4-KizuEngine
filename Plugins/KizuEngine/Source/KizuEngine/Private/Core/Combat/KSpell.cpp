@@ -6,6 +6,7 @@
 #include "Core/Combat/KBuff.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/KCharacter.h"
+#include "Components/SceneComponent.h"
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Components/SphereComponent.h"
 
@@ -15,8 +16,10 @@ AKSpell::AKSpell()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	if (CollisionComponent) {
+		SetRootComponent(CollisionComponent);
 		CollisionComponent->bHiddenInGame = false;
 		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AKSpell::OnCollisionBeginOverlap_Native);
 	}
@@ -156,6 +159,7 @@ void AKSpell::ExecuteSpellEffectOnCharacter(FSpellEffect &SpellEffect, AKCharact
 			UE_LOG(LogKizu, Log, TEXT("<%s> recovers <%s>'s <%s> by <%f> with spell <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpellEffect.ResourceName, SpellEffect.Value, *SpellData.Name);
 		}
 	}
+	ExecuteBuffsOnCharacter(SpellEffect.Buffs, OwnerCharacter, TargetCharacter);
 	AffectedActors.AddUnique(TargetCharacter);
 }
 
@@ -188,7 +192,7 @@ void AKSpell::ExecuteBuffsOnCharacter(TArray<TSubclassOf<AKBuff>> Buffs, AKChara
 		UE_LOG(LogKizu, Warning, TEXT("Unable to execute the Buff due to invalid Owner or Target."));
 		return;
 	}
-	for (AKBuff* Buff : Buffs) {
+	for (TSubclassOf<AKBuff> Buff : Buffs) {
 		ExecuteBuffOnCharacter(Buff, OwnerCharacter, TargetCharacter);
 	}
 }

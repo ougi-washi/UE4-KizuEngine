@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "KSpell.generated.h"
 
+class USceneComponent;
 class USphereComponent;
 class AKCharacter;
 class AKBuff;
@@ -36,7 +37,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	float Value = 10.f;
 	/** The effects that are going to be executed on the trigger event of the Spell.*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Spell")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	TArray<TSubclassOf<AKBuff>> Buffs;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spell|Effect")
 	bool bAffectOtherFaction = true;
