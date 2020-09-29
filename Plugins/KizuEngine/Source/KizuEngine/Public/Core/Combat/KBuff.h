@@ -54,7 +54,6 @@ public:
 
 class AKCharacter;
 
-
 UCLASS()
 class KIZUENGINE_API AKBuff : public AActor
 {

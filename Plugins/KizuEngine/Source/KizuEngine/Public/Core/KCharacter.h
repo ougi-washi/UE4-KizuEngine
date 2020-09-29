@@ -11,6 +11,7 @@
 
 USTRUCT(BlueprintType)
 struct FResource {
+
 	GENERATED_USTRUCT_BODY()
 
 public:
@@ -49,8 +50,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	uint8 Faction = 0;
 };
-
-//class AKAbility;
 
 UCLASS()
 class KIZUENGINE_API AKCharacter : public ACharacter
@@ -215,6 +214,13 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 
+	/** Checks if the character has enough health. */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	bool HasEnoughHealth(const float Value = 50.f);
+	/** Checks if the character has enough from the resource given in the parameters. Returns false if the resource was not found.*/
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	bool HasEnoughResource(const FString ResourceName, const float Value = 50.f);
+
 	//UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	//void ExecuteAbility(TSubclassOf<AKAbility> Ability);
 
@@ -253,6 +259,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
 	void ServerSetTimeDilation(const float TimeDilation);
+
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Buff|Effect")
 	void MulticastSetTimeDilation(const float TimeDilation);
 };

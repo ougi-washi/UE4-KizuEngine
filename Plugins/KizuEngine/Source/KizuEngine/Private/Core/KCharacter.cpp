@@ -44,10 +44,6 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float inValue)
 	CharacterData.CurrentHealth = inValue;
 
 	OnCurrentHealthChange_Native();
-
-	if (CharacterData.CurrentHealth <= 0.f) {
-		ExecuteDeathEvent_Native();
-	}
 }
 
 void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float inValue)
@@ -174,8 +170,26 @@ bool AKCharacter::ServerApplyDamage_Validate(AActor* Target, const float Damage,
 	return (Damage > 0);
 }
 
+bool AKCharacter::HasEnoughHealth(const float Value /*= 50.f*/)
+{
+	return (CharacterData.CurrentHealth >= Value);
+}
+
+bool AKCharacter::HasEnoughResource(const FString ResourceName, const float Value /*= 50.f*/)
+{
+	float ResourceCurrentValue;
+	if (GetResourceCurrentValue(ResourceName, ResourceCurrentValue))
+		return (ResourceCurrentValue >= Value);
+	return false;
+}
+
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	float FinalValue = CharacterData.CurrentHealth - Damage;
+	if (FinalValue <= 0.f) {
+		ServerSetCurrentHealth(0.f);
+		ExecuteDeathEvent_Native();
+	}
 	ServerSetCurrentHealth(CharacterData.CurrentHealth - Damage);
 	OnHealthLoss_Native(Damage);
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
