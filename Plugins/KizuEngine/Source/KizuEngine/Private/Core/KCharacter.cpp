@@ -241,7 +241,6 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 	}
 }
 
-
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {
 	if (Montage->IsValidLowLevel()) {

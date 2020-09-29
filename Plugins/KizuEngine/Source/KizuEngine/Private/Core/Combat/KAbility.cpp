@@ -2,6 +2,8 @@
 
 
 #include "Core/Combat/KAbility.h"
+#include "KizuEngine.h"
+#include "Core/KCharacter.h"
 
 // Sets default values
 AKAbility::AKAbility()
@@ -15,7 +17,6 @@ AKAbility::AKAbility()
 void AKAbility::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -23,5 +24,36 @@ void AKAbility::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AKAbility::OnCooldownReady_Native()
+{
+	OnCooldownReady();
+	if (AbilityData.DestroyOnCooldownReady) {
+		GetWorld()->GetTimerManager().ClearTimer(CooldownTimer);
+		Destroy(true, true);
+	}
+}
+
+bool AKAbility::ExecuteAbility()
+{
+	AKCharacter* OwnerCharacter = Cast<AKCharacter>(GetOwner());
+	if (OwnerCharacter) {
+		bool bHasEnoughResource = false;
+		// Checks the player resources
+		if (AbilityData.ResourceSelection.bHealthResource) 
+			bHasEnoughResource = OwnerCharacter->HasEnoughHealth(AbilityData.ResourceSelection.Value);
+		else bHasEnoughResource = OwnerCharacter->HasEnoughResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
+		// Consume resources
+		if (bHasEnoughResource) {
+			if (AbilityData.ResourceSelection.bHealthResource)
+				OwnerCharacter->ConsumeResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
+			else OwnerCharacter->ServerApplyDamage(OwnerCharacter, AbilityData.ResourceSelection.Value, NULL);
+			OwnerCharacter->MontagePlay_Replicated(AbilityData.AnimMontage, 1.f);
+			GetWorld()->GetTimerManager().SetTimer(CooldownTimer, this, &AKAbility::OnCooldownReady_Native, .1f, false, AbilityData.Cooldown);
+			return true;
+		}
+	}
+	return false;
 }
 

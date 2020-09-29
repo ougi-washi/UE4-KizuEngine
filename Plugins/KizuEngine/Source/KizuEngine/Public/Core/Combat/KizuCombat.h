@@ -17,6 +17,21 @@ enum EResourceEffectType
 	Consumption
 };
 
+USTRUCT(BlueprintType)
+struct FResourceSelection
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|General|Resource")
+	bool bHealthResource = true;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "!bHealthResource"), Category = "Kizu|General|Resource")
+	FString ResourceName = "None";
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|General|Resource")
+	float Value = 10.f;
+};
+
 
 USTRUCT(BlueprintType)
 struct FTimeDilationParams
@@ -26,7 +41,7 @@ struct FTimeDilationParams
 public:
 
 	/** To have a natural state, the value has to be 1. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay, Category = "Kizu|Buff")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay, Category = "Kizu|General")
 		float Value = .7f;
 };
 
