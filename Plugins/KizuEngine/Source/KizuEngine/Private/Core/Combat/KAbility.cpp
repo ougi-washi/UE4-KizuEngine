@@ -47,8 +47,8 @@ bool AKAbility::ExecuteAbility()
 		// Consume resources
 		if (bHasEnoughResource) {
 			if (AbilityData.ResourceSelection.bHealthResource)
-				OwnerCharacter->ConsumeResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
-			else OwnerCharacter->ServerApplyDamage(OwnerCharacter, AbilityData.ResourceSelection.Value, NULL);
+				OwnerCharacter->ServerApplyDamage(OwnerCharacter, AbilityData.ResourceSelection.Value, NULL);
+			else OwnerCharacter->ConsumeResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
 			OwnerCharacter->MontagePlay_Replicated(AbilityData.AnimMontage, 1.f);
 			GetWorld()->GetTimerManager().SetTimer(CooldownTimer, this, &AKAbility::OnCooldownReady_Native, .1f, false, AbilityData.Cooldown);
 			return true;

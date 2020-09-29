@@ -15,7 +15,7 @@ struct FAbilityData
 public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
-	FString Name;
+	FString Name = "None";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
 	UAnimMontage* AnimMontage;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
