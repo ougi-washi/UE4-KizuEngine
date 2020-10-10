@@ -172,16 +172,17 @@ public:
 	* Consume resource on the server by checking the possibility of being below 0 (Check with the boolean while setting up this resource).
 	* @param ResourceName The resource name to look for in the Array
 	* @param ValueToConsume The value to subtract from the resource given
+	* @param bCheckEnoughResource Checks if there are enough resources
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
-	bool ConsumeResource(const FString ResourceName, const float ValueToConsume = 10);
+	bool ConsumeResource(const FString ResourceName, const float ValueToConsume = 10.f, const bool bCheckEnoughResource = true);
 	/**
 	* Event called when gaining a resource
 	* @param ResourceName The resource name
 	* @param Value The value gained
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
-		void OnResourceGain(const FString& ResourceName, const float& Value);
+	void OnResourceGain(const FString& ResourceName, const float& Value);
 	virtual void OnResourceGain_Native(const FString& ResourceName, const float& Value);
 	/**
 	* Event called when consuming a resource

@@ -3,30 +3,43 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Engine.h"
 #include "GameFramework/Actor.h"
 #include "Core/Combat/KizuCombat.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/DataTable.h"
 #include "KAbility.generated.h"
 
-USTRUCT(BlueprintType)
-struct FAbilityData
+USTRUCT(Blueprintable, BlueprintType)
+struct FAbilityData : public FTableRowBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
+	/** Name of the ability */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	FString Name = "None";
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
+	/** Animation Montage to play for this Ability */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	UAnimMontage* AnimMontage;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
-	FResourceSelection ResourceSelection;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
+	/** Resource name to use. In order to consume Health as resource, please use "DEFAULT_HEALTH" */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	FString ResourceName = "None";
+	/** Value of the resources to consume */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	float Value = 10;
+	/** Cooldown of the ability to be able to use it again */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	float Cooldown = 5.f;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Ability")
+	/** Destroy the object when the CoolDown is ready (advanced usage) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Advanced)
 	bool DestroyOnCooldownReady = true;
 };
 
-UCLASS()
+class AKCharacter;
+
+UCLASS(Abstract)
 class KIZUENGINE_API AKAbility : public AActor
 {
 	GENERATED_BODY()

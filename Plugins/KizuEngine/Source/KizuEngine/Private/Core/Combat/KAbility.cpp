@@ -35,25 +35,26 @@ void AKAbility::OnCooldownReady_Native()
 	}
 }
 
+
 bool AKAbility::ExecuteAbility()
 {
-	AKCharacter* OwnerCharacter = Cast<AKCharacter>(GetOwner());
-	if (OwnerCharacter) {
-		bool bHasEnoughResource = false;
-		// Checks the player resources
-		if (AbilityData.ResourceSelection.bHealthResource) 
-			bHasEnoughResource = OwnerCharacter->HasEnoughHealth(AbilityData.ResourceSelection.Value);
-		else bHasEnoughResource = OwnerCharacter->HasEnoughResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
-		// Consume resources
-		if (bHasEnoughResource) {
-			if (AbilityData.ResourceSelection.bHealthResource)
-				OwnerCharacter->ServerApplyDamage(OwnerCharacter, AbilityData.ResourceSelection.Value, NULL);
-			else OwnerCharacter->ConsumeResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
-			OwnerCharacter->MontagePlay_Replicated(AbilityData.AnimMontage, 1.f);
-			GetWorld()->GetTimerManager().SetTimer(CooldownTimer, this, &AKAbility::OnCooldownReady_Native, .1f, false, AbilityData.Cooldown);
-			return true;
-		}
-	}
+	//AKCharacter* OwnerCharacter = Cast<AKCharacter>(GetOwner());
+	//if (OwnerCharacter) {
+	//	bool bHasEnoughResource = false;
+	//	// Checks the player resources
+	//	if (AbilityData.ResourceSelection.bHealthResource) 
+	//		bHasEnoughResource = OwnerCharacter->HasEnoughHealth(AbilityData.ResourceSelection.Value);
+	//	else bHasEnoughResource = OwnerCharacter->HasEnoughResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
+	//	// Consume resources
+	//	if (bHasEnoughResource) {
+	//		if (AbilityData.ResourceSelection.bHealthResource)
+	//			OwnerCharacter->ServerApplyDamage(OwnerCharacter, AbilityData.ResourceSelection.Value, NULL);
+	//		else OwnerCharacter->ConsumeResource(AbilityData.ResourceSelection.ResourceName, AbilityData.ResourceSelection.Value);
+	//		OwnerCharacter->MontagePlay_Replicated(AbilityData.AnimMontage, 1.f);
+	//		GetWorld()->GetTimerManager().SetTimer(CooldownTimer, this, &AKAbility::OnCooldownReady_Native, .1f, false, AbilityData.Cooldown);
+	//		return true;
+	//	}
+	//}
 	return false;
 }
 

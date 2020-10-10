@@ -103,10 +103,12 @@ bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& Res
 		ResultValue = Resource.CurrentValue;
 		return true;
 	}
+	else if (ResourceName == "DEFAULT_HEALTH") {
+		ResultValue = CharacterData.CurrentHealth;
+		return true;
+	}
 	return false;
 }
-
-
 
 bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGain)
 {
@@ -124,16 +126,21 @@ bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGa
 	return false;
 }
 
-bool AKCharacter::ConsumeResource(const FString ResourceName, const float ValueToConsume)
+bool AKCharacter::ConsumeResource(const FString ResourceName, const float ValueToConsume, const bool bCheckEnoughResource)
 {
 	FResource Resource;
+	if (bCheckEnoughResource && !HasEnoughResource(ResourceName, ValueToConsume))
+		return false;
 	if (GetResource(ResourceName, Resource)) {
-
 		float FinalValue = Resource.CurrentValue - ValueToConsume;
 		if (FinalValue < 0 && !Resource.bCanBeBelowZero)
 			FinalValue = 0;
 		ServerSetCurrentResource(ResourceName, FinalValue);
-
+		OnResourceConsumption_Native(ResourceName, ValueToConsume);
+		return true;
+	}
+	else if (ResourceName == "DEFAULT_HEALTH") {
+		ServerApplyDamage(this, ValueToConsume, NULL);
 		OnResourceConsumption_Native(ResourceName, ValueToConsume);
 		return true;
 	}
@@ -186,11 +193,13 @@ bool AKCharacter::HasEnoughResource(const FString ResourceName, const float Valu
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	float FinalValue = CharacterData.CurrentHealth - Damage;
-	if (FinalValue <= 0.f) {
+	
+	if (FinalValue < 0.f) {
 		ServerSetCurrentHealth(0.f);
 		ExecuteDeathEvent_Native();
 	}
-	ServerSetCurrentHealth(CharacterData.CurrentHealth - Damage);
+	else ServerSetCurrentHealth(FinalValue);
+	
 	OnHealthLoss_Native(Damage);
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
