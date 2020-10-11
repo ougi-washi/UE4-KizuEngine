@@ -20,8 +20,6 @@ It can be used for a huge variety of projects including PC/Mobile/Console.
 - Ai
 - Inventory
 
-Any contribution is appreciated.
-
 For any issue or other services :
 Jed Fakhfekh
 jedfakhfekh@gmail.com
