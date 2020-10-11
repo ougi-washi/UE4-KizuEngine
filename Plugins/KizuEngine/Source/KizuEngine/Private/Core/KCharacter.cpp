@@ -190,6 +190,37 @@ bool AKCharacter::HasEnoughResource(const FString ResourceName, const float Valu
 	return false;
 }
 
+bool AKCharacter::AddCustomDamage(const FCustomDamage& CustomDamage)
+{
+	if (!CustomDamageStack.Contains(CustomDamage)) {
+		CustomDamageStack.AddUnique(CustomDamage);
+		return true;
+	}
+	return false;
+}
+
+bool AKCharacter::GetCustomDamage(const FString InID, FCustomDamage& OutCustomDamage)
+{
+	OutCustomDamage = FCustomDamage(InID);
+	int32 IndexFound = CustomDamageStack.Find(OutCustomDamage);
+	if (CustomDamageStack.IsValidIndex(IndexFound)) {
+		OutCustomDamage = CustomDamageStack[IndexFound];
+		return true;
+	}
+	return false;
+}
+
+bool AKCharacter::EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage)
+{
+	FCustomDamage CustomDamage;
+	if (GetCustomDamage(InID, CustomDamage)) {
+		CustomDamage.Value = InCustomDamage.Value;
+		CustomDamage.DamageType = InCustomDamage.DamageType;
+		return true;
+	}
+	return false;
+}
+
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	float FinalValue = CharacterData.CurrentHealth - Damage;
@@ -219,7 +250,6 @@ void AKCharacter::ExecuteDeathEvent_Native()
 		MontagePlay_Replicated(DeathMontage);
 	ExecuteDeathEvent();
 }
-
 
 // Called every frame
 void AKCharacter::Tick(float DeltaTime)
@@ -296,3 +326,93 @@ void AKCharacter::MulticastSetTimeDilation_Implementation(const float TimeDilati
 	CustomTimeDilation = TimeDilation;
 }
 
+bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCooldown)
+{
+	FCooldown Cooldown;
+	float TimeElapsed;
+	float TimeRemaining;
+	if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown) {
+		OnNotifyCooldown_Native(Cooldown.ID, TimeElapsed, TimeRemaining);
+		return false;
+	}
+	else if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
+		MontagePlay_Replicated(ActionData.AnimMontage, 1.f);
+		if (bUseCooldown) {
+			Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
+			StartCooldown(Cooldown);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool AKCharacter::AddCooldownToStack(const FCooldown& Cooldown)
+{
+	if (CooldownStack.Contains(Cooldown))
+		return false;
+	CooldownStack.AddUnique(Cooldown);
+	return true;
+}
+
+bool AKCharacter::StartCooldown(FCooldown& Cooldown)
+{
+	if (UWorld* World = GetWorld()) {
+		FTimerDelegate TimerDel;
+		TimerDel.BindUFunction(this, FName("EndCooldown"), Cooldown.ID);
+		World->GetTimerManager().SetTimer(Cooldown.TimerHandle, TimerDel, 1.f, true, Cooldown.Duration);
+		AddCooldownToStack(Cooldown);
+		return true;
+	}
+	return false;
+}
+
+void AKCharacter::EndCooldown(const FString CooldownID)
+{
+	FCooldown Cooldown(CooldownID);
+	int32 CooldownIndex;
+	if (GetCooldown(CooldownID, Cooldown, CooldownIndex))
+	{
+		if (UWorld* World = GetWorld())
+			World->GetTimerManager().ClearTimer(Cooldown.TimerHandle);
+		CooldownStack.RemoveAt(CooldownIndex, 1, true);
+		OnEndCooldown(Cooldown);
+	}
+}
+
+bool AKCharacter::GetCooldown(const FString InID, FCooldown& OutCooldown)
+{
+	// Lossy method for BPs
+	int32 Index;
+	return GetCooldown(InID, OutCooldown, Index);
+}
+
+bool AKCharacter::GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index)
+{
+	OutCooldown = FCooldown(InID);
+	Index = CooldownStack.Find(OutCooldown);
+	if (!CooldownStack.IsValidIndex(Index))
+		return false;
+	OutCooldown = CooldownStack[Index];
+	return true;
+}
+
+bool AKCharacter::GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining)
+{
+	FCooldown Cooldown;
+	if (GetCooldown(InCooldownID, Cooldown))
+	{
+		if (UWorld* World = GetWorld()) {
+			Elapsed = World->GetTimerManager().GetTimerElapsed(Cooldown.TimerHandle);
+			Remaining = World->GetTimerManager().GetTimerRemaining(Cooldown.TimerHandle);
+			return true;
+		}
+	}
+	Elapsed = -1;
+	Remaining = -1;
+	return false;
+}
+
+void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining)
+{
+	OnNotifyCooldown(CooldownID, Elapsed, Remaining);
+}

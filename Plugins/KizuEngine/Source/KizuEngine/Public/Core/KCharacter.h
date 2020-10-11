@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
+#include "Core/KAction.h"
 #include "KCharacter.generated.h"
 
 
@@ -51,28 +52,43 @@ public:
 	uint8 Faction = 0;
 };
 
+USTRUCT(BlueprintType)
+struct FCustomDamage 
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
+	FString ID;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
+	float Value;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
+	TSubclassOf<UDamageType> DamageType;
+
+	FORCEINLINE bool operator==(const FCustomDamage& rhs) const
+	{
+		return (rhs.ID == this->ID);
+	}
+
+	FCustomDamage() {
+		// Default Constructor
+	}
+
+	FCustomDamage(FString InID) {
+		this->ID = InID;
+	}
+};
+
 UCLASS()
 class KIZUENGINE_API AKCharacter : public ACharacter
 {
 	GENERATED_BODY()
 		
-public:
+private:
 
-	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
-	FCharacterData CharacterData;
-	/** If the character plays the death montage on death */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
-	bool bPlayDeathMontage = false;
-	/** This death montage is played on the death of the character (Current health equals 0)*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition="bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
-	UAnimMontage* DeathMontage;
+	bool AddCooldownToStack(const FCooldown& Cooldown);
 
-
-	// Sets default values for this character's properties
-	AKCharacter();
-	/** Property replication */
-	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -80,15 +96,32 @@ protected:
 	// Temp pointer to the last spawned Actor.
 	UPROPERTY(Replicated)
 	AActor* LastSpawnedActorRef;
-
+	// Custom Damage to fill, clear and use during Gameplay.
+	UPROPERTY()
+	TArray<FCustomDamage> CustomDamageStack;
 
 public:	
 
+	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
+		FCharacterData CharacterData;
+	/** If the character plays the death montage on death */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
+		bool bPlayDeathMontage = false;
+	/** This death montage is played on the death of the character (Current health equals 0)*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
+		UAnimMontage* DeathMontage;
+
+
+	// Sets default values for this character's properties
+	AKCharacter();
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	/** Property replication */
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/**
 	 * General functionalities
@@ -214,16 +247,19 @@ public:
 	/** Apply damage to an Actor (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
-
 	/** Checks if the character has enough health. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool HasEnoughHealth(const float Value = 50.f);
 	/** Checks if the character has enough from the resource given in the parameters. Returns false if the resource was not found.*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool HasEnoughResource(const FString ResourceName, const float Value = 50.f);
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
+	bool AddCustomDamage(const FCustomDamage& CustomDamage);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
+	bool GetCustomDamage(const FString InID, FCustomDamage& OutCustomDamage);
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
+	bool EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage);
 
-	//UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
-	//void ExecuteAbility(TSubclassOf<AKAbility> Ability);
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -263,4 +299,30 @@ public:
 
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Buff|Effect")
 	void MulticastSetTimeDilation(const float TimeDilation);
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	TArray<FCooldown> CooldownStack;
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
+	bool ExecuteAction(const FActionData& ActionData, const bool bUseCooldown = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
+	bool StartCooldown(UPARAM(ref) FCooldown& Cooldown);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
+	void EndCooldown(const FString CooldownID);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown", meta = (Keywords = "Ready"))
+	void OnEndCooldown(const FCooldown& Cooldown);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	bool GetCooldown(const FString InID, FCooldown& OutCooldown);
+	bool GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	bool GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown")
+	void OnNotifyCooldown(const FString& CooldownID, const float& Elapsed, const float& Remaining);
+	void OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining);
 };
