@@ -42,9 +42,9 @@ struct FCooldown
 
 public:
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		FString ID = "None";
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		float Duration = 0.f;
 
 	FTimerHandle TimerHandle;
