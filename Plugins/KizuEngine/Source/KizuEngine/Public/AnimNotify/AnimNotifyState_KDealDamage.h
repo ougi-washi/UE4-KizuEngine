@@ -52,8 +52,8 @@ public:
 	/** Damage Type */
 	UPROPERTY(EditAnywhere, Category = "Kizu", meta = (Tooltip = "Damage Type"))
 	TSubclassOf<UDamageType> DamageType;
-	/** Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter before executing this notify */
-	UPROPERTY(EditAnywhere, Category = "Kizu", meta = (Tooltip = "Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter executing this notify"))
+	/** Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter before executing this notify via (Add Custom Damage) node */
+	UPROPERTY(EditAnywhere, Category = "Kizu", meta = (Tooltip = "Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter before executing this notify via (Add Custom Damage) node. "))
 	FString CustomDamageID;
 
 	virtual void NotifyBegin(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, float TotalDuration) override;
