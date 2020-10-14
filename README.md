@@ -4,7 +4,7 @@ Kizu Engine
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
 Kizu Engine is an Unreal Engine plug-in that contains the main components for replicated game systems.
-It can be used for a huge variety of projects including PC/Mobile/Console.
+It can be used for a huge variety of projects due to its flexibility.
 
 Status
 ------
