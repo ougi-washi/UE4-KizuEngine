@@ -9,7 +9,7 @@ It can be used for a huge variety of projects including PC/Mobile/Console.
 Status
 ------
 
-Version : 0.1
+Version : 0.1 (pre-release)
 
 Supported engine version : 4.25*
 
