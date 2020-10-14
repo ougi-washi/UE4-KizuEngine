@@ -4,7 +4,7 @@
 	"VersionName": "0.1",
 	"FriendlyName": "Kizu Engine",
 	"Description": "Kizu Engine is an Unreal Engine plugin that contains the main components for replicated game systems. It can be used for a huge variety of projects due to its flexibility.",
-	"Category": "Game programming",
+	"Category": "Framework",
 	"CreatedBy": "Jed Fakhfekh",
 	"CreatedByURL": "https://jedfakhfekh.wixsite.com/home",
 	"DocsURL": "https://github.com/Fukaidemon/UE4-KizuEngine",
