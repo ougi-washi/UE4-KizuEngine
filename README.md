@@ -47,7 +47,7 @@ jedfakhfekh@gmail.com
 See also
 --------
 
- - [An Introduction to UE4 Plugins](https://wiki.unrealengine.com/An_Introduction_to_UE4_Plugins).
+ - [Unreal Engine 4 Plugins](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html).
  
  
 License
