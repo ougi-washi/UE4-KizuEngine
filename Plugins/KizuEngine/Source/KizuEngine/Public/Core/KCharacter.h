@@ -18,15 +18,15 @@ struct FResource {
 public:
 	/** The custom resource name */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-		FString Name = "None";
+	FString Name = "None";
 	/** The custom resource max value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-		float MaxValue = 100.f;
+	float MaxValue = 100.f;
 	/** The custom resource current value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-		float CurrentValue = 100.f;
+	float CurrentValue = 100.f;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-		bool bCanBeBelowZero = false;
+	bool bCanBeBelowZero = false;
 };
 
 USTRUCT(BlueprintType)
@@ -104,14 +104,16 @@ public:
 
 	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
-		FCharacterData CharacterData;
+	FCharacterData CharacterData;
 	/** If the character plays the death montage on death */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
-		bool bPlayDeathMontage = false;
+	bool bPlayDeathMontage = false;
 	/** This death montage is played on the death of the character (Current health equals 0)*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
-		UAnimMontage* DeathMontage;
-
+	UAnimMontage* DeathMontage;
+	/** The Cooldown stack that holds are the Cooldowns */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	TArray<FCooldown> CooldownStack;
 
 	// Sets default values for this character's properties
 	AKCharacter();
@@ -145,14 +147,14 @@ public:
 
 	 /** RepNotify for changes made to current health.*/
 	UFUNCTION()
-		void OnRep_CharacterData();
+	void OnRep_CharacterData();
 	/** Response to Data being updated. Called on the server immediately after modification, and on clients in response to a RepNotify*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
-		void OnCurrentHealthChange();
+	void OnCurrentHealthChange();
 	virtual void OnCurrentHealthChange_Native();
 	/** Execute the death event (Animation/Events/etc...) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
-		void ExecuteDeathEvent();
+	void ExecuteDeathEvent();
 	virtual void ExecuteDeathEvent_Native();
 	/** Sets the character data during the initialization or to use when changing multiple variables.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
@@ -253,13 +255,15 @@ public:
 	/** Checks if the character has enough from the resource given in the parameters. Returns false if the resource was not found.*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool HasEnoughResource(const FString ResourceName, const float Value = 50.f);
+	/** Adds a custom damage to the character (use "Make Custom Damage" in Blueprints before adding it)*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	bool AddCustomDamage(const FCustomDamage& CustomDamage);
+	/** Get a custom damage from the custom damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool GetCustomDamage(const FString InID, FCustomDamage& OutCustomDamage);
+	/** Edit the custom damage in the Custom Damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage);
-
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -293,35 +297,74 @@ public:
 	 */
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void MulticastMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
-
+	/**
+	 * Set time dilation on the server (Replicated)
+	 * @param TimeDilation new input time dilation to apply
+	 */
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
 	void ServerSetTimeDilation(const float TimeDilation);
-
+	/**
+	 * Set time dilation on the clients
+	 * @param TimeDilation new input time dilation to apply
+	 */
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Buff|Effect")
 	void MulticastSetTimeDilation(const float TimeDilation);
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	TArray<FCooldown> CooldownStack;
+	/**
+	 * Actions and Cooldowns
+	 */
 
+	/**
+	 * Executes a given action while choosing if it should be added to the Cooldown stack or not (Replicated)
+	 * @param ActionData The action to execute in this function
+	 * @param bUseCooldown If a Cooldown will be added to the stacks
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
 	bool ExecuteAction(const FActionData& ActionData, const bool bUseCooldown = true);
-
+	/**
+	 * Starts a given Cooldown in the parameter by adding it to the stack. This Cooldown is accessible by its ID
+	 * @param Cooldown The Cooldown to start (constructing it is possible via "Make Cooldown" Blueprints)
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
 	bool StartCooldown(UPARAM(ref) FCooldown& Cooldown);
-
+	/**
+	 * Ends a given Cooldown in the parameter and removing it from the Cooldown stack.
+	 * Can be used in order to clear a Cooldown (The action of this Cooldown will be available for usage again).
+	 * @param CooldownID The ID of the Cooldown to remove
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
 	void EndCooldown(const FString CooldownID);
-
+	/**
+	 * Event called when the cooldown ends
+	 * @param Cooldown the Cooldown struct that has ended
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown", meta = (Keywords = "Ready"))
 	void OnEndCooldown(const FCooldown& Cooldown);
-
+	/**
+	 * Get a Cooldown from a given ID
+	 * @param InID ID of the Cooldown
+	 * @param OutCooldown Resulting Cooldown
+	 * @return Returns if the Cooldown exists in the Cooldown stack
+	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown);
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index);
-
+	/**
+	 * Gets the Cooldown timers with a given ID (the elapsed and remaining time of the Cooldown)
+	 * @param InCooldownID The ID of the Cooldown to look for its Data
+	 * @param Elapsed The elapsed time of the Cooldown
+	 * @param Remaining The remaining time of the Cooldown
+	 * @return Returns if the Cooldown has been found
+	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
 	bool GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining);
-
+	/**
+	 * Event called when an Action is executed and its Cooldown is still in the Cooldown stack. 
+	 * If this event is called, it means that the actions is still unavailable and wasn't executed.
+	 * @param CooldownID The ID of the Cooldown that has been found
+	 * @param Elapsed The time elapsed since the Cooldown has been existing in the stack
+	 * @param Remaining the remaining time until this Cooldown will end
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown")
 	void OnNotifyCooldown(const FString& CooldownID, const float& Elapsed, const float& Remaining);
 	void OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining);
