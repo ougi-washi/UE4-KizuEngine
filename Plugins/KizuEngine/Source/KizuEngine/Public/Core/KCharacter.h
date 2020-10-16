@@ -350,6 +350,14 @@ public:
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown);
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index);
 	/**
+	 * Returns if the cooldown is ready.
+	 * The cooldown is ready means that the cooldown isn't available in the Cooldown stack.
+	 * @Param InID The ID of the Cooldown to look for
+	 * @return Returns if the cooldown is ready or not
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	bool IsCooldownReady(const FString InID);
+	/**
 	 * Gets the Cooldown timers with a given ID (the elapsed and remaining time of the Cooldown)
 	 * @param InCooldownID The ID of the Cooldown to look for its Data
 	 * @param Elapsed The elapsed time of the Cooldown

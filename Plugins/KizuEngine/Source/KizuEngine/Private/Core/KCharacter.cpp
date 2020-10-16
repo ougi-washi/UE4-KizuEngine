@@ -396,6 +396,12 @@ bool AKCharacter::GetCooldown(const FString InID, FCooldown& OutCooldown, int32&
 	return true;
 }
 
+bool AKCharacter::IsCooldownReady(const FString InID)
+{
+	FCooldown CooldownTemp;
+	return !GetCooldown(InID, CooldownTemp);
+}
+
 bool AKCharacter::GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining)
 {
 	FCooldown Cooldown;
