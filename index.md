@@ -6,7 +6,7 @@ This page represents the documentation of the KizuEngine framework that will mak
 
 1. Adding the plugin to your project's "/Plugins/" folder [(Binaries can be found here)](https://github.com/Hiro-KE/UE4-KizuEngine/releases). 
 2. After starting the editor, you'll be able to enable the KizuEngine Plugin.
-3. It will requires you to restart the Unreal Engine Editor. Now, all the framework components are accessible to your project.
+3. It will require you to restart the Unreal Engine Editor. Now, all the framework components are accessible to your project.
 
 ### Character Class
 
