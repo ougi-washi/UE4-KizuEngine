@@ -25,23 +25,24 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 
 
 ### Key features
-- Base character "KCharacter"
+- Base character
   - Resources (Health or any custom resources)
   - Cooldowns
   - Custom Damage types
   - Actions
-- Spells "KSpell"
-- Buffs "KBuff"
-- Damage AnimNotifyState "KDealDamage"
+- Spells
+- Buffs
+- Damage AnimNotifyState
 
 #### Near Future implementations
 - Ai
 - Inventory
 - Objective system
 
-For any issue or other services :
-Jed Fakhfekh
-jedfakhfekh@gmail.com
+
+How to use
+-----
+[Documentation link here](https://hiro-ke.github.io/UE4-KizuEngine/)
 
 
 See also
@@ -49,7 +50,12 @@ See also
 
  - [Unreal Engine 4 Plugins](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html).
  
- 
+Contact
+--------
+For any issue or other services :
+  Jed Fakhfekh
+  jedfakhfekh@gmail.com
+
 License
 -------
 
