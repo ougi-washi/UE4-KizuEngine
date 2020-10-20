@@ -1,12 +1,17 @@
-## Welcome to GitHub Pages
+## Introduction
 
-You can use the [editor on GitHub](https://github.com/Hiro-KE/UE4-KizuEngine/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This page represents the documentation of the KizuEngine framework that will make it easy to the developers to make Replicated games. 
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### How to use
 
-### Markdown
+1. Adding the plugin to your project's "/Plugins/" folder [(Binaries can be found here)](https://github.com/Hiro-KE/UE4-KizuEngine/releases). 
+2. After starting the editor, you'll be able to enable the KizuEngine Plugin.
+3. It will requires you to restart the Unreal Engine Editor. Now, all the framework components are accessible to your project.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+|||
+|----|----|
+|![2](Create a character that inherits from KCharacter and you'll be able to give it all kind of resources Data. This can include health, energy, physical power, magical power, armor, etc. Any kind of Resources owned by the character will be replicated and can be accessed from multiple other functions or events around the game.)|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CharacterData.png)|
+|![2](As an exmaple of some functions, these resources Blueprints offer you the possibility to change the values of the resources. Eventually, you're not obliged to use these unless you want to create some custom system.)|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ResourcesBP.png)|
 
 ```markdown
 Syntax highlighted code block
