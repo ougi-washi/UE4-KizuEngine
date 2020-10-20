@@ -1,9 +1,3 @@
-<tr>                      <!-- 100% -->
-    <th style="width:10%"><!--  10% -->test</th>
-    <th style="width:50%"><!--  50% -->test</th>
-    <th>                  <!--  40% -->test</th>
-</tr>
-
 ## Introduction
 
 This page represents the documentation of the KizuEngine framework that will make it easy to the developers to make Replicated games. 
