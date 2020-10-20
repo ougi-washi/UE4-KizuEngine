@@ -18,9 +18,5 @@ This page represents the documentation of the KizuEngine framework that will mak
 #### Spells
 |||
 |----|----|
-|Create a spell that inherits from KSpell and you'll be able to set its data in the default class section. 
-The spell data contains an array of effects where every effect would affect the resources of the other actors in collision during Spawn or after colliding.
-The spell can affect the owner, a different faction from the owner's or the owner's faction.
-Aside from that, every Effect can contain a buff/debuff that will be applied on the target affected.
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Spell.png)|
+|Create a spell that inherits from KSpell and you'll be able to set its data in the default class section. The spell data contains an array of effects where every effect would affect the resources of the other actors in collision during Spawn or after colliding. The spell can affect the owner, a different faction from the owner's or the owner's faction. Aside from that, every Effect can contain a buff/debuff that will be applied on the target affected.|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Spell.png)|
 |As an exmaple of some functions, these spells Blueprints offer you the ability to create a custom Spell without making use of the Data.|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpellsBP.png)|
