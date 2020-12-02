@@ -77,4 +77,5 @@ DerivedDataCache/*
 Content/
 Config/
 Source/
+!Plugins/KizuEngine/Source/
 *.uproject
