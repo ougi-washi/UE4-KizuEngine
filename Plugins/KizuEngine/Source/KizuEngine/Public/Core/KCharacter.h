@@ -37,7 +37,7 @@ struct FCharacterData
 public:
 	/** The character name. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	FString Name = "None";
+	FString Name = "Character_Name";
 	/** The character max health. The current health can never exceed this amount */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float MaxHealth = 100.f;

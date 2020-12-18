@@ -281,7 +281,6 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 	}
 }
 
-
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {
 	if (Montage->IsValidLowLevel()) {
@@ -426,11 +425,13 @@ void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
 {
+	UE_LOG(LogKizu, Warning, TEXT("Adding %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.AddItem(ItemToAdd);
 }
 
 void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
 {
+	UE_LOG(LogKizu, Warning, TEXT("Removing %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.RemoveItem(ItemToAdd, Amount);
 }
 
