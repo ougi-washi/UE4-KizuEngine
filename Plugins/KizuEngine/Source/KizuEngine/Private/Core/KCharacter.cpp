@@ -25,6 +25,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	//Replicate Character stats.
 	DOREPLIFETIME(AKCharacter, CharacterData);
 	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
+	DOREPLIFETIME(AKCharacter, Inventory);
 
 }
 
@@ -421,4 +422,19 @@ bool AKCharacter::GetCooldownTimer(const FString InCooldownID, float& Elapsed, f
 void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining)
 {
 	OnNotifyCooldown(CooldownID, Elapsed, Remaining);
+}
+
+void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
+{
+	Inventory.AddItem(ItemToAdd);
+}
+
+void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
+{
+	Inventory.RemoveItem(ItemToAdd, Amount);
+}
+
+bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FItem& ItemToAdd, const int32 Amount)
+{
+	return (Inventory.GetItemCount(ItemToAdd) >= Amount);
 }

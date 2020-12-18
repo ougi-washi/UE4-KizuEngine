@@ -7,8 +7,8 @@
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/KAction.h"
+#include "Core/Inventory/KInventory.h"
 #include "KCharacter.generated.h"
-
 
 USTRUCT(BlueprintType)
 struct FResource {
@@ -114,6 +114,9 @@ public:
 	/** The Cooldown stack that holds are the Cooldowns */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	TArray<FCooldown> CooldownStack;
+	/** Items stack (Inventory array) */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
+	FInventory Inventory;
 
 	// Sets default values for this character's properties
 	AKCharacter();
@@ -376,4 +379,21 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown")
 	void OnNotifyCooldown(const FString& CooldownID, const float& Elapsed, const float& Remaining);
 	void OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining);
+
+	/**
+	 * Inventory
+	 */
+
+	/**
+	 * Call adding an item given into the argument to the inventory (Replicates on the server)
+	 */
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerAddItemToInventory(const FItem &ItemToAdd, const int32 Amount);
+	/**
+	 * Call adding an item given into the argument to the inventory (Replicates on the server)
+	 */
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void ServerRemoveItemFromInventory(const FItem& ItemToAdd, const int32 Amount);
+
+
 };
