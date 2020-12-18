@@ -28,7 +28,7 @@ struct FItem : public FTableRowBase
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FString Id = "None";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FString Name = "None";
+	FString Name = "ItemName";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FItemEffect> UsageEffects;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
