@@ -38,8 +38,10 @@ public class KizuEngine : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"OnlineSubsystem",
-				"OnlineSubsystemUtils"
+				//"OnlineSubsystem",
+				"MovieScene",
+				"LevelSequence"
+				//"OnlineSubsystemUtils"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -48,7 +50,7 @@ public class KizuEngine : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
-				"OnlineSubsystemNull"
+				//"OnlineSubsystemNull"
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);

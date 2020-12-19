@@ -117,6 +117,8 @@ public:
 	/** Items stack (Inventory array) */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
 	FInventory Inventory;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
+	TArray<FString> AchievedObjectiveRequirements;
 
 	// Sets default values for this character's properties
 	AKCharacter();

@@ -26,7 +26,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(AKCharacter, CharacterData);
 	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
 	DOREPLIFETIME(AKCharacter, Inventory);
-
+	DOREPLIFETIME(AKCharacter, AchievedObjectiveRequirements);
 }
 
 // Called when the game starts or when spawned
