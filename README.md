@@ -33,11 +33,12 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 - Spells
 - Buffs
 - Damage AnimNotifyState
+- Inventory (Basic)
+- Objective system (Basic)
 
 #### Near Future implementations
 - Ai
-- Inventory
-- Objective system
+
 
 
 How to use
