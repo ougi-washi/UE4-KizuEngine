@@ -27,14 +27,17 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 ### Key features
 - Base character
   - Resources (Health or any custom resources)
+  - Actions
   - Cooldowns
   - Custom Damage types
   - Actions
 - Spells
 - Buffs
-- Damage AnimNotifyState
 - Inventory (Basic)
 - Objective system (Basic)
+### Extra
+- Damage AnimNotifyState
+- Spell Spawning AnimNotify
 
 #### Near Future implementations
 - Ai
