@@ -30,7 +30,8 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
   - Actions
   - Cooldowns
   - Custom Damage types
-  - Actions
+  - Actions (Combos of Actions)
+  - States
 - Spells
 - Buffs
 - Inventory (Basic)
