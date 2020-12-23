@@ -12,7 +12,7 @@ class AKSpell;
  * 
  */
 
-UCLASS()
+UCLASS(Blueprintable, meta = (DisplayName = "Spawn Spell (Kizu)"))
 class KIZUENGINE_API UAnimNotify_KSpawnSpell : public UAnimNotify
 {
 	GENERATED_BODY()

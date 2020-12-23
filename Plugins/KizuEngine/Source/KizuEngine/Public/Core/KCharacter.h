@@ -112,13 +112,23 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
 	UAnimMontage* DeathMontage;
 	/** The Cooldown stack that holds are the Cooldowns */
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Kizu|Character|Temp")
 	TArray<FCooldown> CooldownStack;
 	/** Items stack (Inventory array) */
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Category = "Kizu|Character|Temp")
 	FInventory Inventory;
+	/** This represents the character possible states (TODO : Make it as a struct and give each state a priority for later execution of events and effect)*/
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Kizu|Character|Data|State")
+	TArray<FString> States;
+	/** This represents the character state */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, Category = "Kizu|Character|Data|State")
+	FString ActiveState = "Idle";
+	/** The achieved requirements */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
 	TArray<FString> AchievedObjectiveRequirements;
+	
+	/** This is a temp variable used for the Combo Systems, this is shared for now among all the combos (a queue has to be created later on). */
+	int32 ComboCounter = 0;
 
 	// Sets default values for this character's properties
 	AKCharacter();
@@ -389,13 +399,20 @@ public:
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Inventory")
 	void ServerAddItemToInventory(const FItem &ItemToAdd, const int32 Amount);
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Inventory")
 	void ServerRemoveItemFromInventory(const FItem& ItemToAdd, const int32 Amount);
 
-
+	/**
+	 * Character States
+	 */
+	/** Set the current state of the character to the one given into the argument. */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|State")
+	void ServerSetCurrentState(const FString &NewState);
+	/** Initialize the default states */
+	void InitializeStates();
 };

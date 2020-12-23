@@ -19,7 +19,7 @@ class AKCharacter;
 /**
  * 
  */
-UCLASS(Blueprintable, meta = (DisplayName = "Kizu Deal Damage"))
+UCLASS(Blueprintable, meta = (DisplayName = "Deal Damage (Kizu)"))
 class KIZUENGINE_API UAnimNotifyState_KDealDamage : public UAnimNotifyState
 {
 

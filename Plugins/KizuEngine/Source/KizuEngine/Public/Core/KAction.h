@@ -20,18 +20,25 @@ public:
 	/** Name of the Action. Make sure the Name of the Action is unique as it's the Key for the Cooldown Stack.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	FString Name = "None";
-	/** Animation Montage to play for this Action */
+	/** Animation Montage to play for this Action (Define one montage if it's a single animation or multiple if it's a Combination of montages (Combo System)) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
-	UAnimMontage* AnimMontage;
+	TArray<UAnimMontage*> AnimMontages;
 	/** Resource name to use. In order to consume Health as resource, please use "DEFAULT_HEALTH" */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	FString ResourceName = "None";
 	/** Value of the resources to consume */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	float Value = 10;
-	/** Cooldown of the Action to be able to use it again */
+	/** Cooldown of the Action to be able to use it again This doesn't work on the Combo System. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	float Cooldown = 5.f;
+	/** Valid states that would make this action to be eligible to execute */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	TArray<FString> ValidStates;
+
+	FActionData() : Super() {
+		ValidStates.AddUnique("Idle");
+	}
 };
 
 
@@ -43,9 +50,9 @@ struct FCooldown
 public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-		FString ID = "None";
+	FString ID = "None";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-		float Duration = 0.f;
+	float Duration = 0.f;
 
 	FTimerHandle TimerHandle;
 

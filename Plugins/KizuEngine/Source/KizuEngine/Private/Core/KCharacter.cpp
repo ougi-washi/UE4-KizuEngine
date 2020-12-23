@@ -15,6 +15,7 @@ AKCharacter::AKCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+	InitializeStates();
 	GetCharacterMovement()->SetIsReplicated(true);
 }
 
@@ -27,6 +28,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
 	DOREPLIFETIME(AKCharacter, Inventory);
 	DOREPLIFETIME(AKCharacter, AchievedObjectiveRequirements);
+	DOREPLIFETIME(AKCharacter, ActiveState);
 }
 
 // Called when the game starts or when spawned
@@ -283,7 +285,7 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {
-	if (Montage->IsValidLowLevel()) {
+	if (Montage) {
 		ClientMontagePlay(Montage, Rate);
 		if (GetIsNetworked())
 			ServerMontagePlay(Montage, Rate);
@@ -331,13 +333,29 @@ bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCo
 	FCooldown Cooldown;
 	float TimeElapsed;
 	float TimeRemaining;
-	if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown) {
+	int32 AnimationsCount = ActionData.AnimMontages.Num();
+	// Check if the character is eligible to execute this Action ( TODO : Notify the user why this can't be executed )
+	if (!ActionData.ValidStates.Contains(ActiveState))
+		return false;
+	// Check if the character has this Action on cooldown
+	if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown && AnimationsCount == 1) {
 		OnNotifyCooldown_Native(Cooldown.ID, TimeElapsed, TimeRemaining);
 		return false;
 	}
+	// Check resources and execute this Action
 	else if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
-		MontagePlay_Replicated(ActionData.AnimMontage, 1.f);
-		if (bUseCooldown) {
+		if(AnimationsCount == 1) { // Execute this in case it's a normal 1 animation to play.
+			MontagePlay_Replicated(ActionData.AnimMontages[0], 1.f);
+		}
+		else if (AnimationsCount > 1) { // Execute this if it's multiple animations (Combo system)
+			if (ComboCounter >= AnimationsCount) // Check if the ComboCounter is exceeding the combo count in the current action.
+				ComboCounter = 0;
+			// Finish by executing the desired animation and increasing the ComboCounter.
+			MontagePlay_Replicated(ActionData.AnimMontages[ComboCounter], 1.f);
+			ComboCounter++;
+		}
+
+		if (bUseCooldown) { 
 			Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
 			StartCooldown(Cooldown);
 		}
@@ -425,17 +443,34 @@ void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
 {
-	UE_LOG(LogKizu, Warning, TEXT("Adding %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
+	UE_LOG(LogKizu, Log, TEXT("Adding %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.AddItem(ItemToAdd);
 }
 
 void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
 {
-	UE_LOG(LogKizu, Warning, TEXT("Removing %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
+	UE_LOG(LogKizu, Log, TEXT("Removing %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.RemoveItem(ItemToAdd, Amount);
 }
 
 bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FItem& ItemToAdd, const int32 Amount)
 {
 	return (Inventory.GetItemCount(ItemToAdd) >= Amount);
+}
+
+void AKCharacter::ServerSetCurrentState_Implementation(const FString& NewState)
+{
+	if (States.Contains(NewState)) {
+		ActiveState = NewState;
+	}
+	else UE_LOG(LogKizu, Warning, TEXT("Cannot find the state [%s] in the list of the states"), *NewState);
+}
+
+void AKCharacter::InitializeStates()
+{
+	States.AddUnique("Idle");
+	States.AddUnique("InAction");
+	States.AddUnique("Blocking");
+	States.AddUnique("Stunned");
+	States.AddUnique("Dead");
 }
