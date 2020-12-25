@@ -10,6 +10,45 @@
 #include "Engine/DataTable.h"
 #include "KAction.generated.h"
 
+UENUM(BlueprintType)
+enum EActionDirection
+{
+	AD_Any UMETA(DisplayName = "Any"),
+	AD_Forward UMETA(DisplayName = "Forward"),
+	AD_Backward UMETA(DisplayName = "Backward"),
+	AD_Right UMETA(DisplayName = "Right"),
+	AD_Left UMETA(DisplayName = "Left"),
+};
+
+UENUM(BlueprintType)
+enum EDirectionMode
+{
+	CameraRotation,
+	CharacterRotation
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct FMontageData
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	UAnimMontage* AnimMontage;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	TEnumAsByte<EActionDirection> Direction;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	TEnumAsByte<EDirectionMode> DirectionMode;
+	/** Valid states that would make this action to be eligible to execute */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	TArray<FString> ValidStates;
+
+	FMontageData() {
+		ValidStates.AddUnique("Idle");
+	}
+};
+
 USTRUCT(Blueprintable, BlueprintType)
 struct FActionData : public FTableRowBase
 {
@@ -22,7 +61,7 @@ public:
 	FString Name = "None";
 	/** Animation Montage to play for this Action (Define one montage if it's a single animation or multiple if it's a Combination of montages (Combo System)) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
-	TArray<UAnimMontage*> AnimMontages;
+	TArray<FMontageData> MontagesData;
 	/** Resource name to use. In order to consume Health as resource, please use "DEFAULT_HEALTH" */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	FString ResourceName = "None";
@@ -32,13 +71,7 @@ public:
 	/** Cooldown of the Action to be able to use it again This doesn't work on the Combo System. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	float Cooldown = 5.f;
-	/** Valid states that would make this action to be eligible to execute */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
-	TArray<FString> ValidStates;
 
-	FActionData() : Super() {
-		ValidStates.AddUnique("Idle");
-	}
 };
 
 

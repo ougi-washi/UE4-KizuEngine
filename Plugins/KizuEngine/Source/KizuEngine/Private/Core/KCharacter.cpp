@@ -5,6 +5,7 @@
 #include "KizuEngine.h"
 #include "Engine/World.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "FunctionLibrary/KActionFunctionLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -17,6 +18,7 @@ AKCharacter::AKCharacter()
 	bReplicates = true;
 	InitializeStates();
 	GetCharacterMovement()->SetIsReplicated(true);
+
 }
 
 void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -330,37 +332,51 @@ void AKCharacter::MulticastSetTimeDilation_Implementation(const float TimeDilati
 
 bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCooldown)
 {
+	if (ActionData.Name == "None") {
+		UE_LOG(LogKizu, Warning, TEXT("Invalid ActionData"));
+		return false;
+	}
 	FCooldown Cooldown;
 	float TimeElapsed;
 	float TimeRemaining;
-	int32 AnimationsCount = ActionData.AnimMontages.Num();
+	int32 AnimationsCount = ActionData.MontagesData.Num();
 	// Check if the character is eligible to execute this Action ( TODO : Notify the user why this can't be executed )
-	if (!ActionData.ValidStates.Contains(ActiveState))
+	if (!UKActionFunctionLibrary::IsValidStateForCharacterByAction(ActionData, this)) {
+		UE_LOG(LogKizu, Log, TEXT("Character [%s] is not in a valid state to execute the action [%s]"), *CharacterData.Name, *ActionData.Name);
 		return false;
+	}
 	// Check if the character has this Action on cooldown
 	if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown && AnimationsCount == 1) {
 		OnNotifyCooldown_Native(Cooldown.ID, TimeElapsed, TimeRemaining);
 		return false;
 	}
-	// Check resources and execute this Action
-	else if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
-		if(AnimationsCount == 1) { // Execute this in case it's a normal 1 animation to play.
-			MontagePlay_Replicated(ActionData.AnimMontages[0], 1.f);
-		}
-		else if (AnimationsCount > 1) { // Execute this if it's multiple animations (Combo system)
-			if (ComboCounter >= AnimationsCount) // Check if the ComboCounter is exceeding the combo count in the current action.
-				ComboCounter = 0;
-			// Finish by executing the desired animation and increasing the ComboCounter.
-			MontagePlay_Replicated(ActionData.AnimMontages[ComboCounter], 1.f);
-			ComboCounter++;
-		}
+	// Check the available direction
 
-		if (bUseCooldown) { 
-			Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
-			StartCooldown(Cooldown);
+	// Filter out the montages by their direction.
+	TArray<FMontageData> ValidMontagesData;
+	if (UKActionFunctionLibrary::GetMontagesDataByDirection(this, ActionData, ValidMontagesData)) {
+		// Check resources and execute this Action
+		if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
+
+			if (AnimationsCount == 1) { // Execute this in case it's a normal 1 animation to play.
+				MontagePlay_Replicated(ValidMontagesData[0].AnimMontage, 1.f);
+			}
+			else if (AnimationsCount > 1) { // Execute this if it's multiple animations (Combo system)
+				if (ComboCounter >= AnimationsCount) // Check if the ComboCounter is exceeding the combo count in the current action.
+					ComboCounter = 0;
+				// Finish by executing the desired animation and increasing the ComboCounter.
+				MontagePlay_Replicated(ValidMontagesData[ComboCounter].AnimMontage, 1.f);
+				ComboCounter++;
+			}
+
+			if (bUseCooldown) {
+				Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
+				StartCooldown(Cooldown);
+			}
+			return true;
 		}
-		return true;
 	}
+	//else UE
 	return false;
 }
 
@@ -469,7 +485,9 @@ void AKCharacter::ServerSetCurrentState_Implementation(const FString& NewState)
 void AKCharacter::InitializeStates()
 {
 	States.AddUnique("Idle");
-	States.AddUnique("InAction");
+	States.AddUnique("Hitting");
+	States.AddUnique("Casting");
+	States.AddUnique("Dodging");
 	States.AddUnique("Blocking");
 	States.AddUnique("Stunned");
 	States.AddUnique("Dead");

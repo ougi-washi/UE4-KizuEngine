@@ -15,7 +15,7 @@ class KIZUENGINE_API UAnimNotify_KSetState : public UAnimNotify
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, Category = "Kizu")
-	FString NewState = "InAction";
+	FString NewState = "Hitting";
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 
