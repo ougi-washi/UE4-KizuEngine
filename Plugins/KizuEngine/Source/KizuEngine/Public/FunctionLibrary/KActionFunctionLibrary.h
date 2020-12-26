@@ -25,11 +25,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
 	static bool IsValidStateForCharacterByAction(const FActionData& ActionData, AKCharacter* KCharacter, const bool bUseComboCounter = true);
 
+
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
 	static EActionDirection ConvertFloatToDirection(const float InValue);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
-	static EActionDirection GetCharacterDirection(ACharacter* Character, const TEnumAsByte<EDirectionMode> DirectionMode);
+	static EActionDirection GetCharacterDirection(ACharacter* Character, const TEnumAsByte<EDirectionMode> DirectionMode, float &OutDirectionValue);
 	/**
 	 * Filters our montages in the action by picking only the ones being in the same direction or having "Any" as direction with the Character given into the argument.
 	 * Returns false if the process fails due to an invalid reference or empty array. 
@@ -39,5 +40,8 @@ public:
 	 * @return Either it was a success or not.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
-	static bool GetMontagesDataByDirection(ACharacter* Character, const FActionData &InActionData, TArray<FMontageData> &OutMontages);
+	static bool FilterMontagesDataByDirection(ACharacter* Character, TArray<FMontageData> InMontages, TArray<FMontageData> &OutMontages);
+	
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
+	static bool FilterMontagesDataByState(AKCharacter* KCharacter, TArray<FMontageData> InMontages, TArray<FMontageData>& OutMontages);
 };

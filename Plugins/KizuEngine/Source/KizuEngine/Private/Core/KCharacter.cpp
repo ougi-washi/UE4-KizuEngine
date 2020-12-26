@@ -339,44 +339,40 @@ bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCo
 	FCooldown Cooldown;
 	float TimeElapsed;
 	float TimeRemaining;
-	int32 AnimationsCount = ActionData.MontagesData.Num();
-	// Check if the character is eligible to execute this Action ( TODO : Notify the user why this can't be executed )
-	if (!UKActionFunctionLibrary::IsValidStateForCharacterByAction(ActionData, this)) {
-		UE_LOG(LogKizu, Log, TEXT("Character [%s] is not in a valid state to execute the action [%s]"), *CharacterData.Name, *ActionData.Name);
-		return false;
-	}
-	// Check if the character has this Action on cooldown
-	if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown && AnimationsCount == 1) {
-		OnNotifyCooldown_Native(Cooldown.ID, TimeElapsed, TimeRemaining);
-		return false;
-	}
-	// Check the available direction
 
-	// Filter out the montages by their direction.
-	TArray<FMontageData> ValidMontagesData;
-	if (UKActionFunctionLibrary::GetMontagesDataByDirection(this, ActionData, ValidMontagesData)) {
-		// Check resources and execute this Action
-		if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
+	// Filter out the montages by their direction and State ( TODO : Notify the user why this can't be executed ). 
+	TArray<FMontageData> ValidDirectionMontages;
+	if (UKActionFunctionLibrary::FilterMontagesDataByDirection(this, ActionData.MontagesData, ValidDirectionMontages)) {
+		TArray<FMontageData> ValidMontages;
+		if (UKActionFunctionLibrary::FilterMontagesDataByState(this, ValidDirectionMontages, ValidMontages))
+		{
+			int32 AnimationsCount = ValidMontages.Num();
 
-			if (AnimationsCount == 1) { // Execute this in case it's a normal 1 animation to play.
-				MontagePlay_Replicated(ValidMontagesData[0].AnimMontage, 1.f);
+			// Check if the character has this Action on cooldown
+			if (GetCooldownTimer(ActionData.Name, TimeElapsed, TimeRemaining) && bUseCooldown) {
+				OnNotifyCooldown_Native(Cooldown.ID, TimeElapsed, TimeRemaining);
+				return false;
 			}
-			else if (AnimationsCount > 1) { // Execute this if it's multiple animations (Combo system)
-				if (ComboCounter >= AnimationsCount) // Check if the ComboCounter is exceeding the combo count in the current action.
+
+			// Check resources and execute this Action
+			if (ConsumeResource(ActionData.ResourceName, ActionData.Value, true)) {
+
+				// Check if the ComboCounter is exceeding the combo count in the current action.
+				if (ComboCounter >= AnimationsCount || !ValidMontages.IsValidIndex(ComboCounter))
 					ComboCounter = 0;
-				// Finish by executing the desired animation and increasing the ComboCounter.
-				MontagePlay_Replicated(ValidMontagesData[ComboCounter].AnimMontage, 1.f);
-				ComboCounter++;
-			}
 
-			if (bUseCooldown) {
-				Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
-				StartCooldown(Cooldown);
+				// Finish by executing the desired animation and increasing the ComboCounter.
+				MontagePlay_Replicated(ValidMontages[ComboCounter].AnimMontage, 1.f);
+				ComboCounter++;
+				
+				if (bUseCooldown) {
+					Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
+					StartCooldown(Cooldown);
+				}
+				return true;
 			}
-			return true;
 		}
 	}
-	//else UE
 	return false;
 }
 
