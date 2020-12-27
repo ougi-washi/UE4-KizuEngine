@@ -28,6 +28,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 - Base character
   - Resources (Health or any custom resources)
   - Actions
+  - Reactions
   - Cooldowns
   - Custom Damage types
   - Actions
