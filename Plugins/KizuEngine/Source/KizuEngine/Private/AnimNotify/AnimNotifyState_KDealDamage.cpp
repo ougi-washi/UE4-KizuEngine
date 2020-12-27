@@ -3,6 +3,13 @@
 
 #include "AnimNotify/AnimNotifyState_KDealDamage.h"
 #include "Core/KCharacter.h"
+#include "Engine/DataTable.h"
+
+
+UAnimNotifyState_KDealDamage::UAnimNotifyState_KDealDamage() : Super()
+{
+	bIgnoreSelf = true;
+}
 
 void UAnimNotifyState_KDealDamage::NotifyBegin(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, float TotalDuration)
 {
@@ -17,13 +24,14 @@ void UAnimNotifyState_KDealDamage::NotifyBegin(class USkeletalMeshComponent* Mes
 void UAnimNotifyState_KDealDamage::NotifyTick(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, float FrameDeltaTime)
 {
 	if (OwnerCharacter)
-		for (UActorComponent* CollisionComponent : CollisionComponents) {
-			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(CollisionComponent)) {
-				TArray<AActor*> OverlappedActors;
-				PrimComp->GetOverlappingActors(OverlappedActors);
-				DamageActors(OverlappedActors);
+		if (OwnerCharacter->IsLocallyControlled())
+			for (UActorComponent* CollisionComponent : CollisionComponents) {
+				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(CollisionComponent)) {
+					TArray<AActor*> OverlappedActors;
+					PrimComp->GetOverlappingActors(OverlappedActors);
+					DamageActors(OverlappedActors);
+				}
 			}
-		}
 	Received_NotifyTick(MeshComp, Animation, FrameDeltaTime);
 }
 
@@ -53,10 +61,26 @@ float UAnimNotifyState_KDealDamage::CalculateDamage()
 void UAnimNotifyState_KDealDamage::DamageActors(TArray<AActor*>& Actors)
 {
 	for (AActor* ActorToDamage : Actors) {
-		if (!DamagedActors.Contains(ActorToDamage)) {
-			OwnerCharacter->ServerApplyDamage(ActorToDamage, FinalDamage, DamageType);
-			DamagedActors.AddUnique(ActorToDamage);
-		}
+		if (!bIgnoreSelf || ActorToDamage!=OwnerCharacter)
+			if (!DamagedActors.Contains(ActorToDamage)) {
+				UE_LOG(LogTemp, Warning, TEXT("Actor affected : %s"), *ActorToDamage->GetName());
+				DamagedActors.AddUnique(ActorToDamage);
+				OwnerCharacter->ApplyDamage_Replicated(ActorToDamage, FinalDamage, DamageType);
+				if (bSendReaction) SendReaction(ActorToDamage);
+
+			}
+	}
+}
+
+
+void UAnimNotifyState_KDealDamage::SendReaction(AActor* TargetActor)
+{
+	if (AKCharacter* TargetCharacter = Cast<AKCharacter>(TargetActor)) {
+		static const FString ContextString(TEXT("ReactionDataTable"));
+		FReactionData* ReactionData = ReactionDataTable->FindRow<FReactionData>(FName(ReactionRowName), ContextString, true);
+		if (ReactionData)
+			OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter);
+		else UE_LOG(LogTemp, Warning, TEXT("Unable to find row in order to send a reaction."))
 	}
 }
 

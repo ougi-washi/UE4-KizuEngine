@@ -21,6 +21,17 @@ enum EActionDirection
 };
 
 UENUM(BlueprintType)
+enum ERelativePosition
+{
+	// Creating another coordinate system so we can use it to add FrontRight / BackLeft for example.
+	RP_Front UMETA(DisplayName = "Front"),
+	RP_Back UMETA(DisplayName = "Back"),
+	RP_Right UMETA(DisplayName = "Right"),
+	RP_Left UMETA(DisplayName = "Left"),
+};
+
+
+UENUM(BlueprintType)
 enum EDirectionMode
 {
 	CameraRotation,
@@ -42,11 +53,7 @@ public:
 	TEnumAsByte<EDirectionMode> DirectionMode;
 	/** Valid states that would make this action to be eligible to execute */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
-	TArray<FString> ValidStates;
-
-	FMontageData() {
-		ValidStates.AddUnique("Idle");
-	}
+	TArray<FString> ValidStates = {"Idle"};
 };
 
 USTRUCT(Blueprintable, BlueprintType)
@@ -71,9 +78,51 @@ public:
 	/** Cooldown of the Action to be able to use it again This doesn't work on the Combo System. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
 	float Cooldown = 5.f;
-
 };
 
+USTRUCT(Blueprintable, BlueprintType)
+struct FReactionMontage_Basic
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+		UAnimMontage* AnimMontage;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+		TArray<FString> ValidStates = { "Idle" };
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct FReactionMontage_Advanced : public FReactionMontage_Basic
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	TEnumAsByte<ERelativePosition> DamageSourceRelativePosition;
+	/** In order to filter out which AnimMontage to pick exactly, we can use a Filter (e.g. by intensity "StrongHit", "NormalHit")*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	FString Filter = "None";
+};
+
+USTRUCT(Blueprintable, BlueprintType)
+struct FReactionData : public FTableRowBase
+{
+	GENERATED_USTRUCT_BODY()
+
+public:	
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	FString Name = "None";
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base, meta = (EditCondition = "!bUseAdvancedReactions"))
+	TArray<FReactionMontage_Basic> BasicReactions;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base)
+	uint8 bUseAdvancedReactions : 1;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Base, meta=(EditCondition = "bUseAdvancedReactions"))
+	TArray<FReactionMontage_Advanced> AdvancedReactions;
+};
 
 USTRUCT(BlueprintType)
 struct FCooldown

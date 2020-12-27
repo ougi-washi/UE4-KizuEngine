@@ -172,6 +172,13 @@ void AKCharacter::OnHealthLoss_Native(const float& Value)
 	OnHealthLoss(Value);
 }
 
+
+void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
+{
+	ServerApplyDamage(Target, Damage, DamageType);
+	//if (IsLocallyControlled()) 
+}
+
 void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	UGameplayStatics::ApplyDamage(Target, Damage, GetController(), this, DamageType);
@@ -179,7 +186,7 @@ void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float D
 
 bool AKCharacter::ServerApplyDamage_Validate(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
-	return (Damage > 0);
+	return (Damage >= 0);
 }
 
 bool AKCharacter::HasEnoughHealth(const float Value /*= 50.f*/)
@@ -193,6 +200,20 @@ bool AKCharacter::HasEnoughResource(const FString ResourceName, const float Valu
 	if (GetResourceCurrentValue(ResourceName, ResourceCurrentValue))
 		return (ResourceCurrentValue >= Value);
 	return false;
+}
+
+float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float FinalValue = CharacterData.CurrentHealth - Damage;
+
+	if (FinalValue < 0.f) {
+		ServerSetCurrentHealth(0.f);
+		ExecuteDeathEvent_Native();
+	}
+	else ServerSetCurrentHealth(FinalValue);
+
+	OnHealthLoss_Native(Damage);
+	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 bool AKCharacter::AddCustomDamage(const FCustomDamage& CustomDamage)
@@ -224,20 +245,6 @@ bool AKCharacter::EditCustomDamage(const FString InID, const FCustomDamage& InCu
 		return true;
 	}
 	return false;
-}
-
-float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	float FinalValue = CharacterData.CurrentHealth - Damage;
-	
-	if (FinalValue < 0.f) {
-		ServerSetCurrentHealth(0.f);
-		ExecuteDeathEvent_Native();
-	}
-	else ServerSetCurrentHealth(FinalValue);
-	
-	OnHealthLoss_Native(Damage);
-	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void AKCharacter::OnRep_CharacterData()
@@ -288,7 +295,7 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {
 	if (Montage) {
-		ClientMontagePlay(Montage, Rate);
+			ClientMontagePlay(Montage, Rate);
 		if (GetIsNetworked())
 			ServerMontagePlay(Montage, Rate);
 	}
@@ -451,6 +458,54 @@ bool AKCharacter::GetCooldownTimer(const FString InCooldownID, float& Elapsed, f
 void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining)
 {
 	OnNotifyCooldown(CooldownID, Elapsed, Remaining);
+}
+
+void AKCharacter::SendReaction(const FReactionData &ReactionData, AKCharacter* TargetCharacter)
+{
+	if (TargetCharacter)
+		TargetCharacter->OnReceiveReaction_Native(ReactionData, this);
+	else UE_LOG(LogKizu, Warning, TEXT("Cannot send a reaction to an invalid character reference."));
+}
+
+
+void AKCharacter::SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+{
+	if (HasAuthority())
+		SendReaction(ReactionData, TargetCharacter);
+	else ServerSendReaction(ReactionData, TargetCharacter);
+}
+
+void AKCharacter::ServerSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+{
+	SendReaction(ReactionData, TargetCharacter);
+}
+
+void AKCharacter::MulticastSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+{
+	SendReaction(ReactionData, TargetCharacter);
+}
+
+void AKCharacter::ClientSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+{
+	SendReaction(ReactionData, TargetCharacter);
+}
+
+void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor)
+{
+	if (SourceActor) {
+		TArray<FReactionMontage_Basic> ResultReactionMontages;
+		if (ReactionData.bUseAdvancedReactions) {
+			TArray<FReactionMontage_Advanced> FilteredReactionMontages;
+			if(UKActionFunctionLibrary::FilterReactionsByDirection(this, SourceActor, ReactionData.AdvancedReactions, FilteredReactionMontages))
+				UKActionFunctionLibrary::FilterReactionsByState(this, static_cast<TArray<FReactionMontage_Basic>>(FilteredReactionMontages), ResultReactionMontages);
+		}
+		else {
+			UKActionFunctionLibrary::FilterReactionsByState(this, ReactionData.BasicReactions, ResultReactionMontages);
+		}
+		if (UAnimMontage* MontageToPlay = UKActionFunctionLibrary::GetRandomMontageFromReactionMontages(ResultReactionMontages))
+			MontagePlay_Replicated(MontageToPlay);
+	}
+	OnReceiveReaction(ReactionData, SourceActor);
 }
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)

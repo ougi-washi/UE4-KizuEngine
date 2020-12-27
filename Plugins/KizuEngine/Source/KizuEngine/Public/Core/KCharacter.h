@@ -190,6 +190,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
 	bool GainHealth(const float ValueToGain = 10);
 	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	/**
 	* Get a resource from the character data
 	* @param ResourceName The resource name to look for in the Array
@@ -262,6 +263,9 @@ public:
 	 */
 
 	/** Apply damage to an Actor (replicated).*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
+	void ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
+	/** Apply damage to an Actor server side (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 	/** Checks if the character has enough health. */
@@ -279,6 +283,7 @@ public:
 	/** Edit the custom damage in the Custom Damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage);
+
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -326,7 +331,7 @@ public:
 	void MulticastSetTimeDilation(const float TimeDilation);
 
 	/**
-	 * Actions and Cooldowns
+	 * Actions, Reactions and Cooldowns
 	 */
 
 	/**
@@ -334,26 +339,26 @@ public:
 	 * @param ActionData The action to execute in this function
 	 * @param bUseCooldown If a Cooldown will be added to the stacks
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Action")
 	bool ExecuteAction(const FActionData& ActionData, const bool bUseCooldown = true);
 	/**
 	 * Starts a given Cooldown in the parameter by adding it to the stack. This Cooldown is accessible by its ID
 	 * @param Cooldown The Cooldown to start (constructing it is possible via "Make Cooldown" Blueprints)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Cooldown")
 	bool StartCooldown(UPARAM(ref) FCooldown& Cooldown);
 	/**
 	 * Ends a given Cooldown in the parameter and removing it from the Cooldown stack.
 	 * Can be used in order to clear a Cooldown (The action of this Cooldown will be available for usage again).
 	 * @param CooldownID The ID of the Cooldown to remove
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Cooldown")
 	void EndCooldown(const FString CooldownID);
 	/**
 	 * Event called when the cooldown ends
 	 * @param Cooldown the Cooldown struct that has ended
 	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown", meta = (Keywords = "Ready"))
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Cooldown", meta = (Keywords = "Ready"))
 	void OnEndCooldown(const FCooldown& Cooldown);
 	/**
 	 * Get a Cooldown from a given ID
@@ -361,7 +366,7 @@ public:
 	 * @param OutCooldown Resulting Cooldown
 	 * @return Returns if the Cooldown exists in the Cooldown stack
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown);
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index);
 	/**
@@ -370,7 +375,7 @@ public:
 	 * @Param InID The ID of the Cooldown to look for
 	 * @return Returns if the cooldown is ready or not
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool IsCooldownReady(const FString InID);
 	/**
 	 * Gets the Cooldown timers with a given ID (the elapsed and remaining time of the Cooldown)
@@ -379,7 +384,7 @@ public:
 	 * @param Remaining The remaining time of the Cooldown
 	 * @return Returns if the Cooldown has been found
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining);
 	/**
 	 * Event called when an Action is executed and its Cooldown is still in the Cooldown stack. 
@@ -388,9 +393,29 @@ public:
 	 * @param Elapsed The time elapsed since the Cooldown has been existing in the stack
 	 * @param Remaining the remaining time until this Cooldown will end
 	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Cooldown")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Cooldown")
 	void OnNotifyCooldown(const FString& CooldownID, const float& Elapsed, const float& Remaining);
 	void OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining);
+	/**
+	 * Send a reaction to a specific character and making the target character given into argument execute specific animation. (Does not replicate)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
+	void SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	/**
+	 * Send a reaction to a specific character and making the target character given into argument execute specific animation. (Replicates)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
+	void SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
+	void ServerSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
+	void MulticastSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	UFUNCTION(Client, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
+	void ClientSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Reaction")
+	void OnReceiveReaction(const FReactionData& ReactionData, AActor* SourceActor);
+	virtual void OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor);
+
 
 	/**
 	 * Inventory
@@ -399,19 +424,19 @@ public:
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Inventory")
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Inventory")
 	void ServerAddItemToInventory(const FItem &ItemToAdd, const int32 Amount);
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Inventory")
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Inventory")
 	void ServerRemoveItemFromInventory(const FItem& ItemToAdd, const int32 Amount);
 
 	/**
 	 * Character States
 	 */
 	/** Set the current state of the character to the one given into the argument. */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|State")
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|State")
 	void ServerSetCurrentState(const FString &NewState);
 	/** Initialize the default states */
 	void InitializeStates();

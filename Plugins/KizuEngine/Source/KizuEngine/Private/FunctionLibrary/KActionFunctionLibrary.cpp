@@ -3,44 +3,15 @@
 #include "FunctionLibrary/KActionFunctionLibrary.h"
 #include "KizuEngine.h"
 #include "Core/KCharacter.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
-
-bool UKActionFunctionLibrary::IsValidStateForCharacterByMontage(const FMontageData& MontageData, AKCharacter* KCharacter)
-{
-	if (KCharacter && MontageData.ValidStates.Num() > 0) {
-		return MontageData.ValidStates.Contains(KCharacter->ActiveState);
-	}
-	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference or the valid states are null for this Montage Data, cannot check if there is a valid state here."));
-	return false;
-}
-
-bool UKActionFunctionLibrary::IsValidStateForCharacterByAction(const FActionData& ActionData, AKCharacter* KCharacter, const bool bUseComboCounter)
-{
-	if (!KCharacter) {
-		UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference, cannot check Action Data."));
-		return false;
-	}
-
-	if (bUseComboCounter)
-	{
-		if (ActionData.MontagesData.IsValidIndex(KCharacter->ComboCounter))
-			return IsValidStateForCharacterByMontage(ActionData.MontagesData[KCharacter->ComboCounter], KCharacter);
-	}
-
-	for (FMontageData MontageData : ActionData.MontagesData)
-	{
-		if (!IsValidStateForCharacterByMontage(MontageData, KCharacter)) 
-			return false;
-	}
-	return true;
-}
 
 EActionDirection UKActionFunctionLibrary::ConvertFloatToDirection(const float InValue)
 {
 	if (InValue >= 30 && InValue <= 150) return EActionDirection::AD_Right;
 	else if (InValue >= -150 && InValue <= -30) return EActionDirection::AD_Left;
 	else if (InValue > -30 && InValue < 30) return EActionDirection::AD_Forward;
-	else if (InValue > 150 && InValue < -150) return EActionDirection::AD_Backward;
+	else if (InValue > 150 || InValue < -150) return EActionDirection::AD_Backward;
 	return EActionDirection::AD_Backward;
 }
 
@@ -65,6 +36,27 @@ EActionDirection UKActionFunctionLibrary::GetCharacterDirection(ACharacter* Char
 	return EActionDirection::AD_Any;
 }
 
+UAnimMontage* UKActionFunctionLibrary::GetRandomMontageFromReactionMontages(TArray<FReactionMontage_Basic> InReactionMontages)
+{
+	int32 MontageIndex = UKismetMathLibrary::RandomInteger(InReactionMontages.Num());
+	if (InReactionMontages.IsValidIndex(MontageIndex))
+		return InReactionMontages[MontageIndex].AnimMontage;
+	else return nullptr;
+}
+
+ERelativePosition UKActionFunctionLibrary::GetRelativePosition(AActor* MainActor, AActor* TargetActor, float& OutOrientationValue)
+{
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(MainActor->GetActorLocation(), TargetActor->GetActorLocation());
+	// Calculate the orientation on the Z axis (Yaw).
+	OutOrientationValue = UKismetMathLibrary::NormalizedDeltaRotator(MainActor->GetActorRotation(),LookAtRotation).Yaw;
+	// Compare the value of the orientation to know the exact rotation
+	if (OutOrientationValue > -135.f && OutOrientationValue < -45.f) return ERelativePosition::RP_Right;
+	if (OutOrientationValue > 45.f && OutOrientationValue < 135.f) return ERelativePosition::RP_Left;
+	if (OutOrientationValue > -45.f && OutOrientationValue < 45.f) return ERelativePosition::RP_Front;
+	if (OutOrientationValue >= 135.f || OutOrientationValue <= -135.f) return ERelativePosition::RP_Back;
+	return ERelativePosition::RP_Back;
+}
+
 bool UKActionFunctionLibrary::FilterMontagesDataByDirection(ACharacter* Character, TArray<FMontageData> InMontages, TArray<FMontageData>& OutMontages)
 {
 	if (Character) {
@@ -85,13 +77,44 @@ bool UKActionFunctionLibrary::FilterMontagesDataByState(AKCharacter* KCharacter,
 {
 	if (KCharacter) {
 		for (FMontageData MontageData : InMontages) {
-			if (IsValidStateForCharacterByMontage(MontageData, KCharacter)) {
+			if (MontageData.ValidStates.Contains(KCharacter->ActiveState)) {
 				OutMontages.Add(MontageData);
 			}
 		}
 		if (OutMontages.Num() > 0)
 			return true;
 	}
-	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference, cannot check character Direction and filter out the montages."));
+	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference, cannot check character state and filter out the montages."));
+	return false;
+}
+
+bool UKActionFunctionLibrary::FilterReactionsByDirection(ACharacter* Character, AActor* SourceActor, TArray<FReactionMontage_Advanced> InMontages, TArray<FReactionMontage_Advanced>& OutMontages)
+{
+	if (Character && SourceActor) {
+		float Orientation;
+		ERelativePosition  RelativePosition = GetRelativePosition(Character, SourceActor, Orientation);
+		for (FReactionMontage_Advanced ReactionMontage : InMontages) {
+			if (ReactionMontage.DamageSourceRelativePosition == RelativePosition)
+				OutMontages.Add(ReactionMontage);
+		}
+		if (OutMontages.Num() > 0)
+			return true;
+	}
+	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character or Source Actor Reference, cannot check relative position of the actor and Source Actor."));
+	return false;
+}
+
+bool UKActionFunctionLibrary::FilterReactionsByState(AKCharacter* KCharacter, TArray<FReactionMontage_Basic> InMontages, TArray<FReactionMontage_Basic>& OutMontages)
+{
+	if (KCharacter) {
+		for (FReactionMontage_Basic ReactionMontage : InMontages)
+		{
+			if (ReactionMontage.ValidStates.Contains(KCharacter->ActiveState)) 
+				OutMontages.Add(ReactionMontage);
+		}
+		if (OutMontages.Num() > 0)
+			return true;
+	}
+	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference, cannot check character state and filter out the montages."));
 	return false;
 }

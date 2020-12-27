@@ -10,7 +10,8 @@ void UAnimNotify_KSpawnSpell::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 {
 	Super::Notify(MeshComp, Animation);
 	if (AKCharacter* KCharacter = Cast<AKCharacter>(MeshComp->GetOwner())) {
-		KCharacter->ServerSpawnActor(SpellToSpawn, KCharacter->GetActorTransform());
+		if (KCharacter->IsLocallyControlled())
+			KCharacter->ServerSpawnActor(SpellToSpawn, KCharacter->GetActorTransform());
 	}
 	else UE_LOG(LogKizu, Warning, TEXT("Cannot use the Spawn Spell AnimNotify on a non-KCharacter."));
 }
