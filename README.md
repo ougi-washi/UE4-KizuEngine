@@ -48,7 +48,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 
 How to use
 -----
-[Documentation link here](https://hiro-ke.github.io/UE4-KizuEngine/)
+[Documentation link here](https://hiro-ke.github.io/UE4-KizuEngine/) (Still WIP)
 
 
 See also
