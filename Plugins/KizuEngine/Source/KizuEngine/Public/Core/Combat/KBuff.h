@@ -18,7 +18,7 @@ public:
 	TEnumAsByte<EResourceEffectType> ResourceEffectType = EResourceEffectType::Consumption;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Buff|Effect")
 	bool bHealthResource = true;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "!bHealthResource"), Category = "Kizu|Spell|Effect")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "!bHealthResource"), Category = "Kizu|Spawnable Ability|Effect")
 	FString ResourceName = "None";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Buff|Effect")
 	float Value = 10.f;

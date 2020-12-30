@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Engine/Engine.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/KAction.h"
+#include "Core/Combat/KizuCombat.h"
 #include "Core/Inventory/KInventory.h"
 #include "KCharacter.generated.h"
+
+class AKBuff;
+class AKSpawnableAbility;
 
 USTRUCT(BlueprintType)
 struct FResource {
@@ -25,6 +28,7 @@ public:
 	/** The custom resource current value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float CurrentValue = 100.f;
+	/** Whether the value can be below 0 or not. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	bool bCanBeBelowZero = false;
 };
@@ -126,7 +130,11 @@ public:
 	/** The achieved requirements */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
 	TArray<FString> AchievedObjectiveRequirements;
+	/* The array of the targets to interact with, damage or such*/
+	UPROPERTY(BlueprintReadWrite)
+	TArray<AActor*> TargetsArray;
 	
+	// Temp values //
 	/** This is a temp variable used for the Combo Systems, this is shared for now among all the combos (a queue has to be created later on). */
 	int32 ComboCounter = 0;
 
@@ -148,13 +156,37 @@ public:
 	  * Returns Checks if the player is networked
 	  * @return True if the player is networked, false if it's a standalone object
 	  */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Network")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|General|Network")
 	bool GetIsNetworked();
 	/*
 	* Replicated Actor Spawn
 	*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
 	void ServerSpawnActor(UClass* Class, const FTransform& Transform);
+	/** Traces from the cross-hair (middle of the screen to a certain range passed into the arguments). Does not replicate.
+	 * @param OutHit - Is the output HitResult when the trace hits.
+	 * @param Direction - Is the direction of the screen.
+	 * @param CollisionChannel - Is the collision channel to be able to hit in the trace.
+	 * @param Distance - Is the Distance of the trace to accept (Range).
+	 * @param bDebug - Whether display the trace or not (for debug purpose).
+	 * @return Whether it has hit or not.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Trace")
+	bool CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel = ECC_Pawn, const float Distance = 2000.f, const bool bDebug = false);
+	/** Add an actor to the saved targets array for later  usage. */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Targetting")
+	void AddActorToTargetsArray(AActor* TargetActor);
+	/** event called when an actor has been added to the targets array. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General|Targetting")
+	void OnAddActorToTargetsArray(AActor* TargetActor);
+	virtual void OnAddActorToTargetsArray_Native(AActor* TargetActor);
+	/** Clear (Emptying) the targets array. This also calls "OnClearTargetArray()".*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Targetting")
+	void ClearTargetsArray();
+	/** Event called when the targets array is cleared. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General|Targetting")
+	void OnClearTargetsArray();
+	virtual void OnClearTargetsArray_Native();
 
 	/**
 	 * Character Data functionalities
@@ -390,7 +422,7 @@ public:
 	 * Event called when an Action is executed and its Cooldown is still in the Cooldown stack. 
 	 * If this event is called, it means that the actions is still unavailable and wasn't executed.
 	 * @param CooldownID The ID of the Cooldown that has been found
-	 * @param Elapsed The time elapsed since the Cooldown has been existing in the stack
+	 * @param Elapsed The time elapsed since the Cooldown has been existing in the stack;:
 	 * @param Remaining the remaining time until this Cooldown will end
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Cooldown")
@@ -416,6 +448,29 @@ public:
 	void OnReceiveReaction(const FReactionData& ReactionData, AActor* SourceActor);
 	virtual void OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor);
 
+	/**
+	 * Specific Spawnables (To add here further spawn-ables classes if required to be initialized in a specific way.
+	 * I am doing this due to being obliged in some cases. It's really not the approach I am willing to take and I am really thinking about changing it.
+	 * I believe that this class should be independent from all other classes related to combat, however, I am limited at some point and I am willing to have things work properly 
+	 * even if a unnoticeable small lack of performance exists.
+	 * I will try to remove all of what's inside this section and make a proper independent manager for the data that has to be transmitted on spawn 
+	 * or make the spawn-able classes initialize themselves with data taken from the owner AActor.
+	 */
+	
+	/** 
+	 * Spawn a Spawnable ability on the server only if the character is controlled locally. That said, it's safe to call it in an AnimNotify.
+	 * @param SpawnableAbilityClass - The Spawnable Ability class to be spawned from
+	 * @param bInitialize - If the Spawnable Ability's movement will be initialized
+	 * @param bUseCrossHair - If the initialization will be managed by the Cross-hair or not.
+	 * @param MeshSocketToSpawnAt - the name of the socket from where the ability is going to be spawned/
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	void SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement = true, const bool bUseCrosshair = true, const FName MeshSocketToSpawnAt = "None", const float Range = 2000.f, const ECollisionChannel CollisionChannel = ECC_Pawn);
+	/**
+	 *
+	 */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	void ServerSpawnSpawnableAbility(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClassconst, const FSpawnableAbilitySpawnParams& SpawnParams);
 
 	/**
 	 * Inventory

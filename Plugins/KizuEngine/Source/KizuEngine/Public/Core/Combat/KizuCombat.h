@@ -32,6 +32,31 @@ public:
 	float Value = 10.f;
 };
 
+USTRUCT(BlueprintType)
+struct FSpawnableAbilitySpawnParams
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	/** The transform to be spawned with */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+		FTransform Transform;
+	/** If the SpawnableAbility will be initialized. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+		uint8 bInitizalizeMobility : 1;
+	/** The initial Direction of the Spawnable */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability", meta = (EditCondition = "bInitizalizeMobility"))
+		FVector InitialDirection = FVector::ZeroVector;
+	/** A target actor  homing. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability", meta = (EditCondition = "bInitizalizeMobility"))
+		AActor* TargetActor;
+
+	FSpawnableAbilitySpawnParams() {
+		bInitizalizeMobility = true;
+	}
+};
+
 
 USTRUCT(BlueprintType)
 struct FTimeDilationParams

@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "FunctionLibrary/KActionFunctionLibrary.h"
+#include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -13,7 +14,7 @@
 // Sets default values
 AKCharacter::AKCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	InitializeStates();
@@ -51,7 +52,7 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float inValue)
 	OnCurrentHealthChange_Native();
 }
 
-void AKCharacter::ServerSetCurrentResource_Implementation(const FString &ResourceName, const float inValue)
+void AKCharacter::ServerSetCurrentResource_Implementation(const FString& ResourceName, const float inValue)
 {
 	for (FResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName)
@@ -176,7 +177,6 @@ void AKCharacter::OnHealthLoss_Native(const float& Value)
 void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	ServerApplyDamage(Target, Damage, DamageType);
-	//if (IsLocallyControlled()) 
 }
 
 void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
@@ -292,10 +292,59 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 	}
 }
 
+bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel /*= ECC_Pawn*/, const float Distance /*= 2000.f*/, const bool bDebug /*= false*/)
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) {
+		// Get viewport size
+		int32 ViewportSizeX;
+		int32 ViewportSizeY;
+		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
+		FVector CrosshairLocation_Start;
+		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, Direction);
+		// Calculate the end position where the cross-hair is pointing at by a given distance
+		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
+		if (bDebug)
+			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
+		if (UWorld* World = GetWorld()) {
+			FCollisionQueryParams CollisionParams;
+			CollisionParams.AddIgnoredActor(this);
+			return World->LineTraceSingleByObjectType(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
+		}
+	}
+	return false;
+}
+
+void AKCharacter::AddActorToTargetsArray(AActor* TargetActor)
+{
+	if (TargetActor) {
+		TargetsArray.AddUnique(TargetActor);
+		OnAddActorToTargetsArray_Native(TargetActor);
+	}
+}
+
+void AKCharacter::OnAddActorToTargetsArray_Native(AActor* TargetActor)
+{
+	UE_LOG(LogKizu, Log, TEXT("Actor [%s] has been added to the target array for the actor [%s]"), *TargetActor->GetName(), *GetName());
+	OnAddActorToTargetsArray(TargetActor);
+}
+
+void AKCharacter::ClearTargetsArray()
+{
+	TargetsArray.Empty();
+	OnClearTargetsArray_Native();
+}
+
+void AKCharacter::OnClearTargetsArray_Native()
+{
+	UE_LOG(LogKizu, Log, TEXT("Target array has been cleared for the actor [%s]"), *GetName());
+	OnClearTargetsArray();
+}
+
 void AKCharacter::MontagePlay_Replicated(UAnimMontage* Montage, const float Rate)
 {
 	if (Montage) {
-			ClientMontagePlay(Montage, Rate);
+		ClientMontagePlay(Montage, Rate);
 		if (GetIsNetworked())
 			ServerMontagePlay(Montage, Rate);
 	}
@@ -371,7 +420,7 @@ bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCo
 				// Finish by executing the desired animation and increasing the ComboCounter.
 				MontagePlay_Replicated(ValidMontages[ComboCounter].AnimMontage, 1.f);
 				ComboCounter++;
-				
+
 				if (bUseCooldown) {
 					Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
 					StartCooldown(Cooldown);
@@ -460,7 +509,7 @@ void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float
 	OnNotifyCooldown(CooldownID, Elapsed, Remaining);
 }
 
-void AKCharacter::SendReaction(const FReactionData &ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
 {
 	if (TargetCharacter)
 		TargetCharacter->OnReceiveReaction_Native(ReactionData, this);
@@ -496,7 +545,7 @@ void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, AA
 		TArray<FReactionMontage_Basic> ResultReactionMontages;
 		if (ReactionData.bUseAdvancedReactions) {
 			TArray<FReactionMontage_Advanced> FilteredReactionMontages;
-			if(UKActionFunctionLibrary::FilterReactionsByDirection(this, SourceActor, ReactionData.AdvancedReactions, FilteredReactionMontages))
+			if (UKActionFunctionLibrary::FilterReactionsByDirection(this, SourceActor, ReactionData.AdvancedReactions, FilteredReactionMontages))
 				UKActionFunctionLibrary::FilterReactionsByState(this, static_cast<TArray<FReactionMontage_Basic>>(FilteredReactionMontages), ResultReactionMontages);
 		}
 		else {
@@ -506,6 +555,28 @@ void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, AA
 			MontagePlay_Replicated(MontageToPlay);
 	}
 	OnReceiveReaction(ReactionData, SourceActor);
+}
+
+void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement, const bool bUseCrosshair, const FName MeshSocketToSpawnAt, const float TargettingRange, const ECollisionChannel CollisionChannel)
+{
+	if (IsLocallyControlled()) {
+		FSpawnableAbilitySpawnParams SpawnParam;
+		SpawnParam.bInitizalizeMobility = bInitializeMovement;
+		SpawnParam.Transform = (MeshSocketToSpawnAt != "None") ? GetMesh()->GetSocketTransform(MeshSocketToSpawnAt) : GetActorTransform();
+		if (bUseCrosshair) {
+			FHitResult OutHit;
+			FVector CrosshairDirection;
+			CrosshairTrace(OutHit, CrosshairDirection, CollisionChannel, TargettingRange);
+			SpawnParam.InitialDirection = CrosshairDirection;
+			SpawnParam.TargetActor = OutHit.GetActor();
+		}
+		ServerSpawnSpawnableAbility(SpawnableAbilityClass, SpawnParam);
+	}
+}
+
+void AKCharacter::ServerSpawnSpawnableAbility_Implementation(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const FSpawnableAbilitySpawnParams &SpawnParams)
+{
+	LastSpawnedActorRef = UKCombatFunctionLibrary::SpawnSpawnableAbility(this, SpawnableAbilityClass, SpawnParams);
 }
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
