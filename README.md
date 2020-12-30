@@ -33,7 +33,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
   - Custom Damage types
   - Actions
   - States
-- Spells
+- Spawnable abilities (Projectiles, Abilities..etc)
 - Buffs
 - Inventory (Basic)
 - Objective system (Basic)
