@@ -59,8 +59,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
 	FString Name = "None";
 	/** If the SpawnableAbility is custom or relying on the base preset.*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
-	bool bUsePreset = true;
+	//UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+	//bool bUsePreset = true;
 	/** The effects that are going to be executed on the trigger event of the SpawnableAbility.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Spawnable Ability")
 	TArray<FSpawnableAbilityEffect> Effects;
@@ -126,12 +126,26 @@ public:
 	UFUNCTION()
 	void TriggerTicking();
 
-	/** Initiate the SpawnableAbility movement data by setting its target actor to home towards and Initial direction to head to
+	/** Initiate the SpawnableAbility movement data by setting its target actor to home towards and Initial direction to head to. (Does not replicate)
+	 * @param InitialDirection The initial direction that the SpawnableAbility will be launched into.
+	 * @param TargetActor The target actor to home towards.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
+	virtual void InitializeMovement(const FVector InitialDirection, AActor* TargetActor);
+
+	/** Initiate the SpawnableAbility movement data by setting its target actor to home towards and Initial direction to head to. (On the server side and calls NetMulticast)
 	 * @param InitialDirection The initial direction that the SpawnableAbility will be launched into.
 	 * @param TargetActor The target actor to home towards.
 	 */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
 	virtual void ServerInitializeMovement(const FVector InitialDirection, AActor* TargetActor);
+
+	/** Initiate the SpawnableAbility movement data by setting its target actor to home towards and Initial direction to head (On all clients)
+	 * @param InitialDirection The initial direction that the SpawnableAbility will be launched into.
+	 * @param TargetActor The target actor to home towards.
+	 */
+	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
+	virtual void MulticastInitializeMovement(const FVector InitialDirection, AActor* TargetActor);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|General")
 	void ServerSetOwner(AActor* InOwnerActor);

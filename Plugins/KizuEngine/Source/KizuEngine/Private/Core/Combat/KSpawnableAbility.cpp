@@ -22,7 +22,6 @@ AKSpawnableAbility::AKSpawnableAbility()
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	if (CollisionComponent) {
 		SetRootComponent(CollisionComponent);
-		CollisionComponent->bHiddenInGame = false;
 		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AKSpawnableAbility::OnCollisionBeginOverlap_Native);
 	}
 	// Adding a Movement component for the projectile
@@ -68,7 +67,8 @@ void AKSpawnableAbility::TriggerTicking()
 	ExecuteSpawnableAbilityEffects(GetAllOnHitEffects());
 }
 
-void AKSpawnableAbility::ServerInitializeMovement_Implementation(const FVector InitialDirection, AActor* TargetActor)
+
+void AKSpawnableAbility::InitializeMovement(const FVector InitialDirection, AActor* TargetActor)
 {
 	// Initialize the velocity
 	ProjectileMovementComponent->Velocity = InitialDirection * ProjectileMovementComponent->InitialSpeed;
@@ -85,6 +85,16 @@ void AKSpawnableAbility::ServerInitializeMovement_Implementation(const FVector I
 		}
 		else ProjectileMovementComponent->HomingTargetComponent = TargetActor->GetRootComponent();
 	}
+}
+
+void AKSpawnableAbility::ServerInitializeMovement_Implementation(const FVector InitialDirection, AActor* TargetActor)
+{
+	MulticastInitializeMovement(InitialDirection, TargetActor);
+}
+
+void AKSpawnableAbility::MulticastInitializeMovement_Implementation(const FVector InitialDirection, AActor* TargetActor)
+{
+	InitializeMovement(InitialDirection, TargetActor);
 }
 
 void AKSpawnableAbility::ServerSetOwner_Implementation(AActor* InOwnerActor)
@@ -161,14 +171,17 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbil
 
 			if (SpawnableAbilityEffect.bAffectOwner && OtherCharacter == OwnerCharacter) {
 				ExecuteSpawnableAbilityEffectOnCharacter(SpawnableAbilityEffect, OwnerCharacter, OtherCharacter);
+				bHasHit = true;
 			}
 			if (SpawnableAbilityEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) {
 				ExecuteSpawnableAbilityEffectOnCharacter(SpawnableAbilityEffect, OwnerCharacter, OtherCharacter);
+				bHasHit = true;
 			}
 			if ((SpawnableAbilityEffect.bAffectOwnerFaction && OtherCharacter->CharacterData.Faction == OwnerCharacter->CharacterData.Faction)
 				&& (OtherCharacter != OwnerCharacter))
 			{
 				ExecuteSpawnableAbilityEffectOnCharacter(SpawnableAbilityEffect, OwnerCharacter, OtherCharacter);
+				bHasHit = true;
 			}
 		}
 	}		
@@ -243,7 +256,7 @@ void AKSpawnableAbility::ServerResetAffectedActors_Implementation()
 
 void AKSpawnableAbility::OnFinishExecuteSpawnableAbilityEffects_Native()
 {
-	if (SpawnableAbilityData.bDestroyOnHit) {
+	if (SpawnableAbilityData.bDestroyOnHit && bHasHit) {
 		TriggerDestroytimer(SpawnableAbilityData.DestroyTimer);
 	}
 	OnFinishExecuteSpawnableAbilityEffects();
@@ -254,5 +267,5 @@ void AKSpawnableAbility::TriggerDestroytimer(const float DestroyTimer)
 	// Destroy(true); // Using Destroy will not wait for the projectile effects to function properly, for that we hide it and give it a second until everything has properly functioned for all the clients in the ApplyProjectileEffects
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
-	SetLifeSpan(UKismetMathLibrary::Abs(DestroyTimer)); // 2 seconds can vary depending on how much of a net latency is at the client however a game with 2000ms is not really playable.
+	SetLifeSpan(UKismetMathLibrary::Abs(DestroyTimer)); // 2 seconds on default, it can vary depending on how much of a net latency is at the client however a game with 2000ms is not really playable.
 }

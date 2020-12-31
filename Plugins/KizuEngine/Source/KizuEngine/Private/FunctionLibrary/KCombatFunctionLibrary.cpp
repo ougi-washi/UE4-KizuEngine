@@ -29,14 +29,13 @@ AKSpawnableAbility* UKCombatFunctionLibrary::SpawnSpawnableAbility(AActor* Owner
 {
 	if (OwnerActor) {
 		if (UWorld* World = OwnerActor->GetWorld()) {
-			ACharacter *Character = Cast<ACharacter>(OwnerActor);
 			AKSpawnableAbility* SpawnableAbility = World->SpawnActorDeferred<AKSpawnableAbility>(SpawnableAbilityToSpawn, SpawnParams.Transform, OwnerActor, Cast<APawn>(OwnerActor));
 			if (SpawnableAbility) {
 				SpawnableAbility->ServerSetOwner(OwnerActor);
+				UGameplayStatics::FinishSpawningActor(SpawnableAbility, SpawnableAbility->GetTransform());
 				if (SpawnParams.bInitizalizeMobility) {
 					SpawnableAbility->ServerInitializeMovement(SpawnParams.InitialDirection, SpawnParams.TargetActor);
 				}
-				UGameplayStatics::FinishSpawningActor(SpawnableAbility, SpawnableAbility->GetTransform());
 				return SpawnableAbility;
 			}
 		}

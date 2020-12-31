@@ -559,19 +559,17 @@ void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, AA
 
 void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement, const bool bUseCrosshair, const FName MeshSocketToSpawnAt, const float TargettingRange, const ECollisionChannel CollisionChannel)
 {
-	if (IsLocallyControlled()) {
-		FSpawnableAbilitySpawnParams SpawnParam;
-		SpawnParam.bInitizalizeMobility = bInitializeMovement;
-		SpawnParam.Transform = (MeshSocketToSpawnAt != "None") ? GetMesh()->GetSocketTransform(MeshSocketToSpawnAt) : GetActorTransform();
-		if (bUseCrosshair) {
-			FHitResult OutHit;
-			FVector CrosshairDirection;
-			CrosshairTrace(OutHit, CrosshairDirection, CollisionChannel, TargettingRange);
-			SpawnParam.InitialDirection = CrosshairDirection;
-			SpawnParam.TargetActor = OutHit.GetActor();
-		}
-		ServerSpawnSpawnableAbility(SpawnableAbilityClass, SpawnParam);
+	FSpawnableAbilitySpawnParams SpawnParam;
+	SpawnParam.bInitizalizeMobility = bInitializeMovement;
+	SpawnParam.Transform = GetMesh()->DoesSocketExist(MeshSocketToSpawnAt) ? GetMesh()->GetSocketTransform(MeshSocketToSpawnAt) : GetActorTransform();
+	if (bUseCrosshair) {
+		FHitResult OutHit;
+		FVector CrosshairDirection;
+		CrosshairTrace(OutHit, CrosshairDirection, CollisionChannel, TargettingRange);
+		SpawnParam.InitialDirection = CrosshairDirection;
+		SpawnParam.TargetActor = OutHit.GetActor();
 	}
+	ServerSpawnSpawnableAbility(SpawnableAbilityClass, SpawnParam);
 }
 
 void AKCharacter::ServerSpawnSpawnableAbility_Implementation(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const FSpawnableAbilitySpawnParams &SpawnParams)

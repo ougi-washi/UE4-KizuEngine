@@ -22,12 +22,15 @@ public:
 	/** The custom resource name */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	FString Name = "None";
+
 	/** The custom resource max value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float MaxValue = 100.f;
+
 	/** The custom resource current value */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float CurrentValue = 100.f;
+
 	/** Whether the value can be below 0 or not. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	bool bCanBeBelowZero = false;
@@ -42,15 +45,19 @@ public:
 	/** The character name. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	FString Name = "Character_Name";
+
 	/** The character max health. The current health can never exceed this amount */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float MaxHealth = 100.f;
+
 	/** The character current health. When reduced to 0, they are considered dead. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	float CurrentHealth = 100.f;
+
 	/** Custom resources array (Examples: Energy, Mana, Armors..) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	TArray<FResource> Resources;
+
 	/** Faction to define either it's an enemy or an ally to another Faction */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	uint8 Faction = 0;
@@ -65,8 +72,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
 	FString ID;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
 	float Value;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
 	TSubclassOf<UDamageType> DamageType;
 
@@ -100,6 +109,7 @@ protected:
 	// Temp pointer to the last spawned Actor.
 	UPROPERTY(Replicated)
 	AActor* LastSpawnedActorRef;
+
 	// Custom Damage to fill, clear and use during Gameplay.
 	UPROPERTY()
 	TArray<FCustomDamage> CustomDamageStack;
@@ -109,27 +119,35 @@ public:
 	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
 	FCharacterData CharacterData;
+
 	/** If the character plays the death montage on death */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
 	bool bPlayDeathMontage = false;
+
 	/** This death montage is played on the death of the character (Current health equals 0)*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
 	UAnimMontage* DeathMontage;
+
 	/** The Cooldown stack that holds are the Cooldowns */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Kizu|Character|Temp")
 	TArray<FCooldown> CooldownStack;
+
 	/** Items stack (Inventory array) */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Category = "Kizu|Character|Temp")
 	FInventory Inventory;
+
 	/** This represents the character possible states (TODO : Make it as a struct and give each state a priority for later execution of events and effect)*/
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Kizu|Character|Data|State")
 	TArray<FString> States;
+
 	/** This represents the character state */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, Category = "Kizu|Character|Data|State")
 	FString ActiveState = "Idle";
+
 	/** The achieved requirements */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
 	TArray<FString> AchievedObjectiveRequirements;
+
 	/* The array of the targets to interact with, damage or such*/
 	UPROPERTY(BlueprintReadWrite)
 	TArray<AActor*> TargetsArray;
@@ -143,8 +161,10 @@ public:
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 	/** Property replication */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -158,11 +178,13 @@ public:
 	  */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|General|Network")
 	bool GetIsNetworked();
+
 	/*
 	* Replicated Actor Spawn
 	*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
 	void ServerSpawnActor(UClass* Class, const FTransform& Transform);
+
 	/** Traces from the cross-hair (middle of the screen to a certain range passed into the arguments). Does not replicate.
 	 * @param OutHit - Is the output HitResult when the trace hits.
 	 * @param Direction - Is the direction of the screen.
@@ -173,16 +195,20 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Trace")
 	bool CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel = ECC_Pawn, const float Distance = 2000.f, const bool bDebug = false);
+
 	/** Add an actor to the saved targets array for later  usage. */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Targetting")
 	void AddActorToTargetsArray(AActor* TargetActor);
+
 	/** event called when an actor has been added to the targets array. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General|Targetting")
 	void OnAddActorToTargetsArray(AActor* TargetActor);
 	virtual void OnAddActorToTargetsArray_Native(AActor* TargetActor);
+
 	/** Clear (Emptying) the targets array. This also calls "OnClearTargetArray()".*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Targetting")
 	void ClearTargetsArray();
+
 	/** Event called when the targets array is cleared. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General|Targetting")
 	void OnClearTargetsArray();
@@ -195,26 +221,33 @@ public:
 	 /** RepNotify for changes made to current health.*/
 	UFUNCTION()
 	void OnRep_CharacterData();
+
 	/** Response to Data being updated. Called on the server immediately after modification, and on clients in response to a RepNotify*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void OnCurrentHealthChange();
 	virtual void OnCurrentHealthChange_Native();
+
 	/** Execute the death event (Animation/Events/etc...) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void ExecuteDeathEvent();
 	virtual void ExecuteDeathEvent_Native();
+
 	/** Sets the character data during the initialization or to use when changing multiple variables.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCharacterData(const FCharacterData& inCharacterData);
+
 	/** Sets the character current health.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentHealth(const float inValue);
+
 	/** Sets the character current energy.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentResource(const FString &ResourceName, const float inValue);
+
 	/** Sets the character Faction.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetFaction(const uint8 NewFaction);
+
 	/**
 	* Gain health on the server by checking the possible maximum.
 	* @param ValueToGain The value to add to the character health
@@ -230,6 +263,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool GetResource(const FString ResourceName, FResource& ResultResource);
+
 	/**
 	* Get a resource index from the character data
 	* @param ResourceName The resource name to look for in the Array
@@ -237,6 +271,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool GetResourceIndex(const FString ResourceName, int& ResourceIndex);
+
 	/**
 	* Get a resource current value from the character data
 	* @param ResourceName The resource name to look for in the Array
@@ -244,6 +279,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool GetResourceCurrentValue(const FString ResourceName, float& ResultValue);
+
 	/**
 	* Gain resource on the server by checking the possible maximum.
 	* @param ResourceName The resource name to look for in the Array
@@ -251,6 +287,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
 	bool GainResource(const FString ResourceName, const float ValueToGain = 10);
+
 	/**
 	* Consume resource on the server by checking the possibility of being below 0 (Check with the boolean while setting up this resource).
 	* @param ResourceName The resource name to look for in the Array
@@ -259,6 +296,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
 	bool ConsumeResource(const FString ResourceName, const float ValueToConsume = 10.f, const bool bCheckEnoughResource = true);
+
 	/**
 	* Event called when gaining a resource
 	* @param ResourceName The resource name
@@ -267,6 +305,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void OnResourceGain(const FString& ResourceName, const float& Value);
 	virtual void OnResourceGain_Native(const FString& ResourceName, const float& Value);
+
 	/**
 	* Event called when consuming a resource
 	* @param ResourceName The resource name
@@ -275,6 +314,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 		void OnResourceConsumption(const FString& ResourceName, const float& Value);
 	virtual void OnResourceConsumption_Native(const FString& ResourceName, const float& Value);
+
 	/**
 	* Event called when gaining health
 	* @param Value The value gained
@@ -282,6 +322,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void OnHealthGain(const float& Value);
 	virtual void OnHealthGain_Native(const float& Value);
+
 	/**
 	* Event called when losing health
 	* @param Value The value lost
@@ -297,25 +338,30 @@ public:
 	/** Apply damage to an Actor (replicated).*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
+
 	/** Apply damage to an Actor server side (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
+
 	/** Checks if the character has enough health. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool HasEnoughHealth(const float Value = 50.f);
+
 	/** Checks if the character has enough from the resource given in the parameters. Returns false if the resource was not found.*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool HasEnoughResource(const FString ResourceName, const float Value = 50.f);
+
 	/** Adds a custom damage to the character (use "Make Custom Damage" in Blueprints before adding it)*/
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	bool AddCustomDamage(const FCustomDamage& CustomDamage);
+
 	/** Get a custom damage from the custom damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool GetCustomDamage(const FString InID, FCustomDamage& OutCustomDamage);
+
 	/** Edit the custom damage in the Custom Damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage);
-
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -328,6 +374,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Animation")
 	void MontagePlay_Replicated(UAnimMontage* Montage, const float Rate = 1.f);
+
 	/**
 	 * Play Montage on server and all clients (Through the AnimInstance of the main Mesh)
 	 * @param Montage The montage to be played by the AnimInstance
@@ -335,6 +382,7 @@ public:
 	 */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void ServerMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
+
 	/**
 	 * Play Montage on client (Through the AnimInstance of the main Mesh)
 	 * @param Montage The montage to be played by the AnimInstance
@@ -342,6 +390,7 @@ public:
 	 */
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void ClientMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
+
 	/**
 	 * Play Montage on all clients (Through the AnimInstance of the main Mesh)
 	 * @param Montage The montage to be played by the AnimInstance
@@ -349,12 +398,14 @@ public:
 	 */
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Animation")
 	void MulticastMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
+
 	/**
 	 * Set time dilation on the server (Replicated)
 	 * @param TimeDilation new input time dilation to apply
 	 */
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
 	void ServerSetTimeDilation(const float TimeDilation);
+
 	/**
 	 * Set time dilation on the clients
 	 * @param TimeDilation new input time dilation to apply
@@ -373,12 +424,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Action")
 	bool ExecuteAction(const FActionData& ActionData, const bool bUseCooldown = true);
+
 	/**
 	 * Starts a given Cooldown in the parameter by adding it to the stack. This Cooldown is accessible by its ID
 	 * @param Cooldown The Cooldown to start (constructing it is possible via "Make Cooldown" Blueprints)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Cooldown")
 	bool StartCooldown(UPARAM(ref) FCooldown& Cooldown);
+
 	/**
 	 * Ends a given Cooldown in the parameter and removing it from the Cooldown stack.
 	 * Can be used in order to clear a Cooldown (The action of this Cooldown will be available for usage again).
@@ -386,12 +439,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Cooldown")
 	void EndCooldown(const FString CooldownID);
+
 	/**
 	 * Event called when the cooldown ends
 	 * @param Cooldown the Cooldown struct that has ended
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Cooldown", meta = (Keywords = "Ready"))
 	void OnEndCooldown(const FCooldown& Cooldown);
+
 	/**
 	 * Get a Cooldown from a given ID
 	 * @param InID ID of the Cooldown
@@ -401,6 +456,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown);
 	bool GetCooldown(const FString InID, FCooldown& OutCooldown, int32& Index);
+
 	/**
 	 * Returns if the cooldown is ready.
 	 * The cooldown is ready means that the cooldown isn't available in the Cooldown stack.
@@ -409,6 +465,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool IsCooldownReady(const FString InID);
+
 	/**
 	 * Gets the Cooldown timers with a given ID (the elapsed and remaining time of the Cooldown)
 	 * @param InCooldownID The ID of the Cooldown to look for its Data
@@ -418,6 +475,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Cooldown")
 	bool GetCooldownTimer(const FString InCooldownID, float& Elapsed, float& Remaining);
+
 	/**
 	 * Event called when an Action is executed and its Cooldown is still in the Cooldown stack. 
 	 * If this event is called, it means that the actions is still unavailable and wasn't executed.
@@ -428,6 +486,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Cooldown")
 	void OnNotifyCooldown(const FString& CooldownID, const float& Elapsed, const float& Remaining);
 	void OnNotifyCooldown_Native(const FString& CooldownID, const float& Elapsed, const float& Remaining);
+
 	/**
 	 * Send a reaction to a specific character and making the target character given into argument execute specific animation. (Does not replicate)
 	 */
@@ -438,12 +497,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
 	void SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
 	void ServerSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
 	void MulticastSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+
 	UFUNCTION(Client, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
 	void ClientSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Reaction")
 	void OnReceiveReaction(const FReactionData& ReactionData, AActor* SourceActor);
 	virtual void OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor);
@@ -466,6 +529,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Spawnable")
 	void SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement = true, const bool bUseCrosshair = true, const FName MeshSocketToSpawnAt = "None", const float Range = 2000.f, const ECollisionChannel CollisionChannel = ECC_Pawn);
+
 	/**
 	 *
 	 */
@@ -481,6 +545,7 @@ public:
 	 */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Inventory")
 	void ServerAddItemToInventory(const FItem &ItemToAdd, const int32 Amount);
+
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
@@ -493,6 +558,11 @@ public:
 	/** Set the current state of the character to the one given into the argument. */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|State")
 	void ServerSetCurrentState(const FString &NewState);
+
+	/**
+	 * Misc & Initializations
+	 */
+
 	/** Initialize the default states */
 	void InitializeStates();
 };
