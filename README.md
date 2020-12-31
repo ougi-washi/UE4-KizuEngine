@@ -9,7 +9,7 @@ It can be used for a huge variety of projects due to its flexibility.
 Status
 ------
 
-Version : 0.1.201227 (pre-release)
+Version : 0.1.201231 (pre-release)
 
 Supported engine version : 4.25*
 
@@ -39,7 +39,8 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 - Objective system (Basic)
 ### Extra
 - Damage AnimNotifyState
-- Spell Spawning AnimNotify
+- Spawnable Ability AnimNotify
+- Setting state AnimNotify
 
 #### Near Future implementations
 - Ai
