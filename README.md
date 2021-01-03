@@ -37,14 +37,11 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 - Buffs
 - Inventory (Basic)
 - Objective system (Basic)
+- Ai (Task)
 ### Extra
 - Damage AnimNotifyState
 - Spawnable Ability AnimNotify
 - Setting state AnimNotify
-
-#### Near Future implementations
-- Ai
-
 
 
 How to use
