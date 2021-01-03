@@ -11,6 +11,7 @@
  * 
  */
 
+class UDataTable;
 
 UCLASS()
 class KIZUENGINE_API UKActionFunctionLibrary : public UBlueprintFunctionLibrary
@@ -50,4 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Reaction")
 	static bool FilterReactionsByState(AKCharacter* KCharacter, TArray<FReactionMontage_Basic> InMontages, TArray<FReactionMontage_Basic>& OutMontages);
 
+	/**
+	 * Data Tables section
+	 */
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
+	static bool ExecuteActionFromDT(AKCharacter* KCharacter, UDataTable* ActionDataTable, FName ActionRowName, bool bUseCooldown = true);
 };

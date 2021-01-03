@@ -40,7 +40,9 @@ public class KizuEngine : ModuleRules
 				"SlateCore",
 				//"OnlineSubsystem",
 				"MovieScene",
-				"LevelSequence"
+				"LevelSequence",
+				"AIModule",
+				"GameplayTasks"
 				//"OnlineSubsystemUtils"
 				// ... add private dependencies that you statically link with here ...	
 			}

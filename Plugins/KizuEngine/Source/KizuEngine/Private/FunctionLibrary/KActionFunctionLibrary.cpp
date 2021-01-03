@@ -118,3 +118,13 @@ bool UKActionFunctionLibrary::FilterReactionsByState(AKCharacter* KCharacter, TA
 	else UE_LOG(LogKizu, Warning, TEXT("Invalid Character Reference, cannot check character state and filter out the montages."));
 	return false;
 }
+
+bool UKActionFunctionLibrary::ExecuteActionFromDT(AKCharacter* KCharacter, UDataTable* ActionDataTable, FName ActionRowName, bool bUseCooldown)
+{
+	static const FString ContextString(TEXT("ActionDataTable"));
+	FActionData* ActionData = ActionDataTable->FindRow<FActionData>(FName(ActionRowName), ContextString, true);
+	if (ActionData)
+		return KCharacter->ExecuteAction(*ActionData, bUseCooldown);
+	else UE_LOG(LogTemp, Warning, TEXT("Unable to find row in order to send an action."));
+	return false;
+}

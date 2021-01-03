@@ -106,7 +106,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// Temp pointer to the last spawned Actor.
+	// Temp pointer to the last spawned Actor. TODO : change to TSharedPointer
 	UPROPERTY(Replicated)
 	AActor* LastSpawnedActorRef;
 
