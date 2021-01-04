@@ -84,6 +84,7 @@ void UAnimNotifyState_KDealDamage::SendReaction(AActor* TargetActor)
 	}
 }
 
+#if WITH_EDITOR
 bool UAnimNotifyState_KDealDamage::CanEditChange(const FProperty* InProperty) const
 {
 	const bool ParentVal = Super::CanEditChange(InProperty);
@@ -114,3 +115,4 @@ bool UAnimNotifyState_KDealDamage::CanEditChange(const FProperty* InProperty) co
 	}
 	return ParentVal;
 }
+#endif
