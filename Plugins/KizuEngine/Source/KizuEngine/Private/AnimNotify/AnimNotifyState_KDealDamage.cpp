@@ -63,7 +63,6 @@ void UAnimNotifyState_KDealDamage::DamageActors(TArray<AActor*>& Actors)
 	for (AActor* ActorToDamage : Actors) {
 		if (!bIgnoreSelf || ActorToDamage!=OwnerCharacter)
 			if (!DamagedActors.Contains(ActorToDamage)) {
-				UE_LOG(LogTemp, Warning, TEXT("Actor affected : %s"), *ActorToDamage->GetName());
 				DamagedActors.AddUnique(ActorToDamage);
 				OwnerCharacter->ApplyDamage_Replicated(ActorToDamage, FinalDamage, DamageType);
 				if (bSendReaction) SendReaction(ActorToDamage);
