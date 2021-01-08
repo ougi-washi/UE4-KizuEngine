@@ -9,7 +9,7 @@ It can be used for a huge variety of projects due to its flexibility.
 Status
 ------
 
-Version : 0.2.210104 (pre-release)
+Version : v0.2.210108 (pre-release)
 
 Supported engine version : 4.25*
 
