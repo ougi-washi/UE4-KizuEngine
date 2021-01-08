@@ -12,7 +12,7 @@
 
 class AKBuff;
 class AKSpawnableAbility;
-
+class AKCharacter;
 
 UCLASS()
 class KIZUENGINE_API UKCombatFunctionLibrary : public UBlueprintFunctionLibrary
@@ -31,4 +31,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
 	static AKSpawnableAbility* SpawnSpawnableAbility(AActor* OwnerActor, TSubclassOf<AKSpawnableAbility> SpawnableAbilityToSpawn, FSpawnableAbilitySpawnParams SpawnParams);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
+	static bool IsSameFaction(AKCharacter* CharacterOne, AKCharacter* CharacterTwo);
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
+	static bool IsSameFactionWithCast(AKCharacter* CharacterOne, AActor* CharacterTwo);
 };

@@ -9,6 +9,7 @@
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/DataTable.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -31,7 +32,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
 	DOREPLIFETIME(AKCharacter, Inventory);
 	DOREPLIFETIME(AKCharacter, AchievedObjectiveRequirements);
-	DOREPLIFETIME(AKCharacter, ActiveState);
+	DOREPLIFETIME_CONDITION(AKCharacter, ActiveState, COND_SkipOwner);
 }
 
 // Called when the game starts or when spawned
@@ -204,9 +205,11 @@ bool AKCharacter::HasEnoughResource(const FString ResourceName, const float Valu
 
 float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	Damage = onTakeDamageModifier(Damage, DamageEvent, EventInstigator, DamageCauser);
+
 	float FinalValue = CharacterData.CurrentHealth - Damage;
 
-	if (FinalValue < 0.f) {
+	if (FinalValue <= 0.f) {
 		ServerSetCurrentHealth(0.f);
 		ExecuteDeathEvent_Native();
 	}
@@ -214,6 +217,11 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 
 	OnHealthLoss_Native(Damage);
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}
+
+float AKCharacter::onTakeDamageModifier_Implementation(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	return Damage;
 }
 
 bool AKCharacter::AddCustomDamage(const FCustomDamage& CustomDamage)
@@ -260,6 +268,8 @@ void AKCharacter::ExecuteDeathEvent_Native()
 {
 	if (bPlayDeathMontage && DeathMontage)
 		MontagePlay_Replicated(DeathMontage);
+	if (bSetStateOnDeath)
+		SetCurrentStateFast(DeathState);
 	ExecuteDeathEvent();
 }
 
@@ -374,6 +384,46 @@ void AKCharacter::MulticastMontagePlay_Implementation(UAnimMontage* Montage, con
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!IsLocallyControlled() && AnimInstance)
 		AnimInstance->Montage_Play(Montage, Rate);
+}
+
+void AKCharacter::LocalMontagePlay(UAnimMontage* Montage, APawn* LocalPawn, const float Rate /*= 1.f*/)
+{
+	if (LocalPawn && Montage)
+		if (LocalPawn->IsLocallyControlled() && GetMesh()) {
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (AnimInstance) {
+				AnimInstance->Montage_Play(Montage, Rate);
+			}
+		}
+}
+
+void AKCharacter::MontagePlayWithIgnore_Replicated(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate /*= 1.f*/)
+{
+	if (Montage) {
+		ClientMontagePlay(Montage, Rate);
+		if (GetIsNetworked() && IsLocallyControlled())
+			ServerMontagePlayWithIgnore(Montage, PawnToIgnore, Rate);
+	}
+	else UE_LOG(LogKizu, Warning, TEXT("<MontagePlayWithIgnore_Replicated> Cannot play a NULL Montage."));
+}
+
+void AKCharacter::ServerMontagePlayWithIgnore_Implementation(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate /*= 1.f*/)
+{
+	MulticastMontagePlayWithIgnore(Montage, PawnToIgnore, Rate);
+}
+
+void AKCharacter::MulticastMontagePlayWithIgnore_Implementation(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate /*= 1.f*/)
+{
+	if (GetMesh()) {
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (PawnToIgnore->IsValidLowLevel()) {
+			if (!IsLocallyControlled() && AnimInstance && !PawnToIgnore->IsLocallyControlled()) {
+				AnimInstance->Montage_Play(Montage, Rate);
+			}
+		}
+		else if (!IsLocallyControlled() && AnimInstance)
+			AnimInstance->Montage_Play(Montage, Rate);
+	}
 }
 
 void AKCharacter::ServerSetTimeDilation_Implementation(const float TimeDilation)
@@ -509,52 +559,82 @@ void AKCharacter::OnNotifyCooldown_Native(const FString& CooldownID, const float
 	OnNotifyCooldown(CooldownID, Elapsed, Remaining);
 }
 
-void AKCharacter::SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication)
 {
 	if (TargetCharacter)
-		TargetCharacter->OnReceiveReaction_Native(ReactionData, this);
+		TargetCharacter->OnReceiveReaction_Native(ReactionData, this, ReactionReplication);
 	else UE_LOG(LogKizu, Warning, TEXT("Cannot send a reaction to an invalid character reference."));
 }
 
-
-void AKCharacter::SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication)
 {
-	if (HasAuthority())
-		SendReaction(ReactionData, TargetCharacter);
-	else ServerSendReaction(ReactionData, TargetCharacter);
+	if (ReactionReplication == RR_All || ReactionReplication == RR_SkipSource) {
+		ServerSendReaction(ReactionData, TargetCharacter, ReactionReplication);
+	}
+	else if (ReactionReplication == RR_ServerOnly){
+		if (HasAuthority())
+			SendReaction(ReactionData, TargetCharacter, ReactionReplication);
+	}
+	else if (ReactionReplication == RR_SourceOnly) {
+		if (IsLocallyControlled())
+			SendReaction(ReactionData, TargetCharacter, ReactionReplication);
+	}
 }
 
-void AKCharacter::ServerSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::ServerSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication)
 {
-	SendReaction(ReactionData, TargetCharacter);
+	SendReaction(ReactionData, TargetCharacter, ReactionReplication);
 }
 
-void AKCharacter::MulticastSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::MulticastSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication)
 {
-	SendReaction(ReactionData, TargetCharacter);
+	SendReaction(ReactionData, TargetCharacter, ReactionReplication);
 }
 
-void AKCharacter::ClientSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter)
+void AKCharacter::ClientSendReaction_Implementation(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication)
 {
-	SendReaction(ReactionData, TargetCharacter);
+	SendReaction(ReactionData, TargetCharacter, ReactionReplication);
 }
 
-void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor)
+void AKCharacter::OnReceiveReaction_Native(const FReactionData& ReactionData, APawn* SourcePawn, EReactionReplication ReactionReplication)
 {
-	if (SourceActor) {
-		TArray<FReactionMontage_Basic> ResultReactionMontages;
-		if (ReactionData.bUseAdvancedReactions) {
-			TArray<FReactionMontage_Advanced> FilteredReactionMontages;
-			if (UKActionFunctionLibrary::FilterReactionsByDirection(this, SourceActor, ReactionData.AdvancedReactions, FilteredReactionMontages))
+	if (UAnimMontage* MontageToPlay = GetReactionMontageToPlay(ReactionData, SourcePawn)) {
+		if (ReactionReplication == RR_All)
+			MontagePlay_Replicated(MontageToPlay);
+		else if (ReactionReplication == RR_ServerOnly)
+			ServerMontagePlay(MontageToPlay);
+		else if (ReactionReplication == RR_SourceOnly && GetMesh() && SourcePawn->IsLocallyControlled()) {
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (AnimInstance->IsValidLowLevel()) {
+				AnimInstance->Montage_Play(MontageToPlay);
+			}
+		}
+		else if (ReactionReplication == RR_SkipSource) {
+			if (IsLocallyControlled())
+				MontagePlayWithIgnore_Replicated(MontageToPlay, SourcePawn); // Play for everybody besides the source client
+		}
+	}
+	OnReceiveReaction(ReactionData, SourcePawn, ReactionReplication);
+}
+
+UAnimMontage* AKCharacter::GetReactionMontageToPlay(const FReactionData& ReactionData, APawn* SourcePawn)
+{
+	TArray<FReactionMontage_Basic> ResultReactionMontages;
+	if (ReactionData.bUseAdvancedReactions) {
+		TArray<FReactionMontage_Advanced> FilteredReactionMontages;
+		if (SourcePawn) {
+			if (UKActionFunctionLibrary::FilterReactionsByDirection(this, SourcePawn, ReactionData.AdvancedReactions, FilteredReactionMontages))
 				UKActionFunctionLibrary::FilterReactionsByState(this, static_cast<TArray<FReactionMontage_Basic>>(FilteredReactionMontages), ResultReactionMontages);
 		}
-		else {
-			UKActionFunctionLibrary::FilterReactionsByState(this, ReactionData.BasicReactions, ResultReactionMontages);
-		}
-		if (UAnimMontage* MontageToPlay = UKActionFunctionLibrary::GetRandomMontageFromReactionMontages(ResultReactionMontages))
-			MontagePlay_Replicated(MontageToPlay);
+		else UKActionFunctionLibrary::FilterReactionsByState(this, static_cast<TArray<FReactionMontage_Basic>>(ReactionData.AdvancedReactions), ResultReactionMontages);
 	}
-	OnReceiveReaction(ReactionData, SourceActor);
+	else {
+		UKActionFunctionLibrary::FilterReactionsByState(this, ReactionData.BasicReactions, ResultReactionMontages);
+	}
+	if (UAnimMontage* MontageToPlay = UKActionFunctionLibrary::GetRandomMontageFromReactionMontages(ResultReactionMontages))
+		return MontageToPlay;
+
+	return nullptr;
 }
 
 void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement, const bool bUseCrosshair, const FName MeshSocketToSpawnAt, const float TargettingRange, const ECollisionChannel CollisionChannel)
@@ -574,7 +654,7 @@ void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbilit
 
 void AKCharacter::ServerSpawnSpawnableAbility_Implementation(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const FSpawnableAbilitySpawnParams &SpawnParams)
 {
-	LastSpawnedActorRef = UKCombatFunctionLibrary::SpawnSpawnableAbility(this, SpawnableAbilityClass, SpawnParams);
+	UKCombatFunctionLibrary::SpawnSpawnableAbility(this, SpawnableAbilityClass, SpawnParams);
 }
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
@@ -592,6 +672,16 @@ void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FItem& Item
 bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FItem& ItemToAdd, const int32 Amount)
 {
 	return (Inventory.GetItemCount(ItemToAdd) >= Amount);
+}
+
+
+void AKCharacter::SetCurrentStateFast(const FString& NewState)
+{
+	if (States.Contains(NewState)) {
+		ActiveState = NewState;
+		ServerSetCurrentState(NewState);
+	}
+	else UE_LOG(LogKizu, Warning, TEXT("Cannot find the state [%s] in the list of the states"), *NewState);
 }
 
 void AKCharacter::ServerSetCurrentState_Implementation(const FString& NewState)

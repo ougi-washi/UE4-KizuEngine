@@ -30,6 +30,14 @@ enum ERelativePosition
 	RP_Left UMETA(DisplayName = "Left"),
 };
 
+UENUM(BlueprintType)
+enum EReactionReplication
+{
+	RR_All UMETA(DisplayName = "All"),
+	RR_SourceOnly UMETA(DisplayName = "Source Only"),
+	RR_ServerOnly UMETA(DisplayName = "Server Only"),
+	RR_SkipSource UMETA(DisplayName = "Skip Source")
+};
 
 UENUM(BlueprintType)
 enum EDirectionMode

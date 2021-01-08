@@ -12,6 +12,7 @@
 
 class AKBuff;
 class AKSpawnableAbility;
+class UDataTable;
 
 USTRUCT(BlueprintType)
 struct FResource {
@@ -128,6 +129,14 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bPlayDeathMontage"), Category = "Kizu|Character|Data|Death")
 	UAnimMontage* DeathMontage;
 
+	/** If the a "Dead" state to be set on death */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
+	bool bSetStateOnDeath = false;
+
+	/** If the a "Dead" state to be set on death */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death", meta= (EditCondition = "bSetStateOnDeath"))
+	FString DeathState = "Dead";
+
 	/** The Cooldown stack that holds are the Cooldowns */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Kizu|Character|Temp")
 	TArray<FCooldown> CooldownStack;
@@ -145,8 +154,12 @@ public:
 	FString ActiveState = "Idle";
 
 	/** The achieved requirements */
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Category = "Kizu|Character|Data|Objectives")
 	TArray<FString> AchievedObjectiveRequirements;
+
+	/** The Data table that represents the list of reactions specific to this character */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Kizu|Character|Data|Reactions")
+	UDataTable* ReactionDataTable;
 
 	/* The array of the targets to interact with, damage or such*/
 	UPROPERTY(BlueprintReadWrite)
@@ -255,6 +268,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data")
 	bool GainHealth(const float ValueToGain = 10);
 	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kizu|Character|Data")
+	float onTakeDamageModifier(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 	/**
 	* Get a resource from the character data
@@ -376,7 +392,7 @@ public:
 	void MontagePlay_Replicated(UAnimMontage* Montage, const float Rate = 1.f);
 
 	/**
-	 * Play Montage on server and all clients (Through the AnimInstance of the main Mesh)
+	 * Play Montage on server and all clients aside from the owner of the character and the owner (Through the AnimInstance of the main Mesh)
 	 * @param Montage The montage to be played by the AnimInstance
 	 * @param Rate Play rate of the Montage
 	 */
@@ -392,7 +408,7 @@ public:
 	void ClientMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
 
 	/**
-	 * Play Montage on all clients (Through the AnimInstance of the main Mesh)
+	 * Play Montage on all clients aside from the owner of the character (Through the AnimInstance of the main Mesh)
 	 * @param Montage The montage to be played by the AnimInstance
 	 * @param Rate Play rate of the Montage
 	 */
@@ -400,17 +416,53 @@ public:
 	void MulticastMontagePlay(UAnimMontage* Montage, const float Rate = 1.f);
 
 	/**
+	 * Play Montage on the client's pawn given in the argument call (Through the AnimInstance of the main Mesh)
+	 * @param Montage The montage to be played by the AnimInstance
+	 * @param LocalPawn The actual pawn to play for
+ 	 * @param Rate Play rate of the Montage
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Animation")
+	void LocalMontagePlay(UAnimMontage* Montage, APawn* LocalPawn, const float Rate = 1.f);
+
+	/**
+	 * Play Montage on server and all clients except the ones in the ignore array (Through the AnimInstance of the main Mesh)
+	 * @param Montage The montage to be played by the AnimInstance
+	 * @param PawnsToIgnore The ignore array of the client's pawns 
+	 * @param Rate Play rate of the Montage
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Animation")
+	void MontagePlayWithIgnore_Replicated(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate = 1.f);
+
+	/**
+	 * Play Montage on server and all clients except the ones in the ignore array and the owner (Through the AnimInstance of the main Mesh)
+	 * @param Montage The montage to be played by the AnimInstance
+	 * @param PawnsToIgnore The ignore array of the client's pawns
+	 * @param Rate Play rate of the Montage
+	 */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Animation")
+	void ServerMontagePlayWithIgnore(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate = 1.f);
+
+	/**
+	 * Play Montage on all clients except the ones in the ignore array and the owner (Through the AnimInstance of the main Mesh)
+	 * @param Montage The montage to be played by the AnimInstance
+	 * @param PawnsToIgnore The ignore array of the client's pawns
+	 * @param Rate Play rate of the Montage
+	 */
+	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Animation")
+	void MulticastMontagePlayWithIgnore(UAnimMontage* Montage, APawn* PawnToIgnore, const float Rate = 1.f);
+
+	/**
 	 * Set time dilation on the server (Replicated)
 	 * @param TimeDilation new input time dilation to apply
 	 */
-	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Buff|Effect")
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Kizu|Character|Animation")
 	void ServerSetTimeDilation(const float TimeDilation);
 
 	/**
 	 * Set time dilation on the clients
 	 * @param TimeDilation new input time dilation to apply
 	 */
-	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Buff|Effect")
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Kizu|Character|Animation")
 	void MulticastSetTimeDilation(const float TimeDilation);
 
 	/**
@@ -491,25 +543,28 @@ public:
 	 * Send a reaction to a specific character and making the target character given into argument execute specific animation. (Does not replicate)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
-	void SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	void SendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
 	/**
 	 * Send a reaction to a specific character and making the target character given into argument execute specific animation. (Replicates)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
-	void SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	void SendReaction_Replicated(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
-	void ServerSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	void ServerSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
 
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
-	void MulticastSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	void MulticastSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
 
 	UFUNCTION(Client, Unreliable, BlueprintCallable, Category = "Kizu|Character|Reaction")
-	void ClientSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter);
+	void ClientSendReaction(const FReactionData& ReactionData, AKCharacter* TargetCharacter, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Reaction")
-	void OnReceiveReaction(const FReactionData& ReactionData, AActor* SourceActor);
-	virtual void OnReceiveReaction_Native(const FReactionData& ReactionData, AActor* SourceActor);
+	void OnReceiveReaction(const FReactionData& ReactionData, APawn* SourcePawn, EReactionReplication ReactionReplication);
+	virtual void OnReceiveReaction_Native(const FReactionData& ReactionData, APawn* SourcePawn, EReactionReplication ReactionReplication = EReactionReplication::RR_All);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Reaction")
+	UAnimMontage* GetReactionMontageToPlay(const FReactionData& ReactionData, APawn* SourcePawn);
 
 	/**
 	 * Specific Spawnables (To add here further spawn-ables classes if required to be initialized in a specific way.
@@ -555,7 +610,12 @@ public:
 	/**
 	 * Character States
 	 */
-	/** Set the current state of the character to the one given into the argument. */
+
+	 /** Set the current state of the character to the one given into the argument. (On self first, then server/other clients)*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|State")
+	void SetCurrentStateFast(const FString& NewState);
+
+	/** Set the current state of the character to the one given into the argument. (On Server) */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|State")
 	void ServerSetCurrentState(const FString &NewState);
 

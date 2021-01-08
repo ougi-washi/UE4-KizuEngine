@@ -4,6 +4,7 @@
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Engine/Engine.h"
 #include "KizuEngine.h"
+#include "Core/KCharacter.h"
 #include "Core/Combat/KBuff.h"
 #include "Core/Combat/KSpawnableAbility.h"
 #include "Kismet/GameplayStatics.h"
@@ -41,4 +42,17 @@ AKSpawnableAbility* UKCombatFunctionLibrary::SpawnSpawnableAbility(AActor* Owner
 		}
 	}
 	return nullptr;
+}
+
+bool UKCombatFunctionLibrary::IsSameFaction(AKCharacter* CharacterOne, AKCharacter* CharacterTwo)
+{
+	return CharacterOne->CharacterData.Faction == CharacterTwo->CharacterData.Faction;
+}
+
+bool UKCombatFunctionLibrary::IsSameFactionWithCast(AKCharacter* CharacterOne, AActor* CharacterTwo)
+{
+	if (AKCharacter* KCharacterTwo = Cast<AKCharacter>(CharacterTwo)) {
+		return CharacterOne->CharacterData.Faction == KCharacterTwo->CharacterData.Faction;
+	}
+	return false;
 }
