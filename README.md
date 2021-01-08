@@ -39,7 +39,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 - Objective system (Basic)
 - Ai (Task)
 ### Extra
-- Damage AnimNotifyState
+- Melee AnimNotifyState
 - Spawnable Ability AnimNotify
 - Setting state AnimNotify
 
