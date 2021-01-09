@@ -143,7 +143,7 @@ public:
 
 	/** Items stack (Inventory array) */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Category = "Kizu|Character|Temp")
-	FInventory Inventory;
+	FKInventoryData Inventory;
 
 	/** This represents the character possible states (TODO : Make it as a struct and give each state a priority for later execution of events and effect)*/
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Kizu|Character|Data|State")
@@ -599,13 +599,13 @@ public:
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Inventory")
-	void ServerAddItemToInventory(const FItem &ItemToAdd, const int32 Amount);
+	void ServerAddItemToInventory(const FKItemData &ItemToAdd, const int32 Amount);
 
 	/**
 	 * Call adding an item given into the argument to the inventory (Replicates on the server)
 	 */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Inventory")
-	void ServerRemoveItemFromInventory(const FItem& ItemToAdd, const int32 Amount);
+	void ServerRemoveItemFromInventory(const FKItemData& ItemToAdd, const int32 Amount);
 
 	/**
 	 * Character States

@@ -657,19 +657,19 @@ void AKCharacter::ServerSpawnSpawnableAbility_Implementation(TSubclassOf<AKSpawn
 	UKCombatFunctionLibrary::SpawnSpawnableAbility(this, SpawnableAbilityClass, SpawnParams);
 }
 
-void AKCharacter::ServerAddItemToInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
+void AKCharacter::ServerAddItemToInventory_Implementation(const FKItemData& ItemToAdd, const int32 Amount)
 {
 	UE_LOG(LogKizu, Log, TEXT("Adding %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.AddItem(ItemToAdd);
 }
 
-void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FItem& ItemToAdd, const int32 Amount)
+void AKCharacter::ServerRemoveItemFromInventory_Implementation(const FKItemData& ItemToAdd, const int32 Amount)
 {
 	UE_LOG(LogKizu, Log, TEXT("Removing %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
 	Inventory.RemoveItem(ItemToAdd, Amount);
 }
 
-bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FItem& ItemToAdd, const int32 Amount)
+bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FKItemData& ItemToAdd, const int32 Amount)
 {
 	return (Inventory.GetItemCount(ItemToAdd) >= Amount);
 }

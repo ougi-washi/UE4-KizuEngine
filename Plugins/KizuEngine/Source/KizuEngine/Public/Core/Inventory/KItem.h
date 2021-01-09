@@ -9,7 +9,7 @@
 
 
 USTRUCT(BlueprintType)
-struct FItemEffect {
+struct FKItemEffect {
 	GENERATED_USTRUCT_BODY()
 
 	/** The resource name */
@@ -21,7 +21,7 @@ struct FItemEffect {
 };
 
 USTRUCT(BlueprintType)
-struct FItem : public FTableRowBase
+struct FKItemData : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -30,7 +30,7 @@ struct FItem : public FTableRowBase
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FString Name = "ItemName";
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TArray<FItemEffect> UsageEffects;
+	TArray<FKItemEffect> UsageEffects;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	uint8 bUseStaticMesh : 1 ;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUseStaticMesh"))
@@ -42,12 +42,12 @@ struct FItem : public FTableRowBase
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay)
 	int Price = 1;
 
-	FItem() : FTableRowBase() {
+	FKItemData() : FTableRowBase() {
 		bUseStaticMesh = 1;
 	}
 };
-// FItem == operator 
-inline bool operator==(const FItem& lhs, const FItem& rhs)
+// FKItemData == operator 
+inline bool operator==(const FKItemData& lhs, const FKItemData& rhs)
 {
 	return lhs.Id == rhs.Id;
 }
@@ -63,7 +63,7 @@ public:
 
 	/** Item data related to it, it represents its name, mesh and other. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FItem ItemData;
+	FKItemData ItemData;
 
 protected:
 	// Called when the game starts or when spawned
