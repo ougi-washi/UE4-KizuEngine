@@ -41,7 +41,7 @@ void AKCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AKCharacter::ServerSetCharacterData_Implementation(const FCharacterData& inCharacterData)
+void AKCharacter::ServerSetCharacterData_Implementation(const FKCharacterData& inCharacterData)
 {
 	CharacterData = inCharacterData;
 }
@@ -55,7 +55,7 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float inValue)
 
 void AKCharacter::ServerSetCurrentResource_Implementation(const FString& ResourceName, const float inValue)
 {
-	for (FResource& Resource : CharacterData.Resources) {
+	for (FKResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName)
 			Resource.CurrentValue = inValue;
 	}
@@ -79,9 +79,9 @@ bool AKCharacter::GainHealth(const float ValueToGain /*= 10*/)
 	return true;
 }
 
-bool AKCharacter::GetResource(const FString ResourceName, FResource& ResultResource)
+bool AKCharacter::GetResource(const FString ResourceName, FKResource& ResultResource)
 {
-	for (FResource& Resource : CharacterData.Resources) {
+	for (FKResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName) {
 			ResultResource = Resource;
 			return true;
@@ -93,7 +93,7 @@ bool AKCharacter::GetResource(const FString ResourceName, FResource& ResultResou
 bool AKCharacter::GetResourceIndex(const FString ResourceName, int& ResourceIndex)
 {
 	int Index = 0;
-	for (FResource& Resource : CharacterData.Resources) {
+	for (FKResource& Resource : CharacterData.Resources) {
 		if (Resource.Name == ResourceName) {
 			ResourceIndex = Index;
 			return true;
@@ -105,7 +105,7 @@ bool AKCharacter::GetResourceIndex(const FString ResourceName, int& ResourceInde
 
 bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& ResultValue)
 {
-	FResource Resource;
+	FKResource Resource;
 	if (GetResource(ResourceName, Resource)) {
 		ResultValue = Resource.CurrentValue;
 		return true;
@@ -119,7 +119,7 @@ bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& Res
 
 bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGain)
 {
-	FResource Resource;
+	FKResource Resource;
 	if (GetResource(ResourceName, Resource)) {
 
 		float FinalValue = Resource.CurrentValue + ValueToGain;
@@ -135,7 +135,7 @@ bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGa
 
 bool AKCharacter::ConsumeResource(const FString ResourceName, const float ValueToConsume, const bool bCheckEnoughResource)
 {
-	FResource Resource;
+	FKResource Resource;
 	if (bCheckEnoughResource && !HasEnoughResource(ResourceName, ValueToConsume))
 		return false;
 	if (GetResource(ResourceName, Resource)) {

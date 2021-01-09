@@ -18,7 +18,7 @@ enum EResourceEffectType
 };
 
 USTRUCT(BlueprintType)
-struct FResourceSelection
+struct FKResourceSelection
 {
 	GENERATED_USTRUCT_BODY()
 

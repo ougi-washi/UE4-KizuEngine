@@ -15,7 +15,7 @@ class AKSpawnableAbility;
 class UDataTable;
 
 USTRUCT(BlueprintType)
-struct FResource {
+struct FKResource {
 
 	GENERATED_USTRUCT_BODY()
 
@@ -38,7 +38,7 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FCharacterData 
+struct FKCharacterData 
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -57,7 +57,7 @@ public:
 
 	/** Custom resources array (Examples: Energy, Mana, Armors..) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	TArray<FResource> Resources;
+	TArray<FKResource> Resources;
 
 	/** Faction to define either it's an enemy or an ally to another Faction */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
@@ -119,7 +119,7 @@ public:
 
 	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
-	FCharacterData CharacterData;
+	FKCharacterData CharacterData;
 
 	/** If the character plays the death montage on death */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
@@ -247,7 +247,7 @@ public:
 
 	/** Sets the character data during the initialization or to use when changing multiple variables.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
-	void ServerSetCharacterData(const FCharacterData& inCharacterData);
+	void ServerSetCharacterData(const FKCharacterData& inCharacterData);
 
 	/** Sets the character current health.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
@@ -278,7 +278,7 @@ public:
 	* @param ResultResource The resulting resource
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
-	bool GetResource(const FString ResourceName, FResource& ResultResource);
+	bool GetResource(const FString ResourceName, FKResource& ResultResource);
 
 	/**
 	* Get a resource index from the character data
