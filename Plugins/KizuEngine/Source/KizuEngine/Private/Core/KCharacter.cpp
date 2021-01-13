@@ -12,15 +12,13 @@
 #include "Engine/DataTable.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-// Sets default values
-AKCharacter::AKCharacter()
+AKCharacter::AKCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	InitializeStates();
 	GetCharacterMovement()->SetIsReplicated(true);
-
 }
 
 void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -39,6 +37,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 void AKCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	InitAllRegens(CharacterData.ResourcesRegen);
 }
 
 void AKCharacter::ServerSetCharacterData_Implementation(const FKCharacterData& inCharacterData)
@@ -253,6 +252,27 @@ bool AKCharacter::EditCustomDamage(const FString InID, const FCustomDamage& InCu
 		return true;
 	}
 	return false;
+}
+
+void AKCharacter::ApplyRegen(const FKResourceRegeneration& ResourceRegen)
+{
+	if(IsLocallyControlled())
+		GainResource(ResourceRegen.Name, ResourceRegen.RegenValue);
+}
+
+void AKCharacter::InitAllRegens(const TArray<FKResourceRegeneration> &ResourcesRegen)
+{
+	if (IsLocallyControlled())
+		for (FKResourceRegeneration ResourceRegen : ResourcesRegen)
+		{
+			FTimerDelegate RegenTimerDelegate;
+
+			RegenTimerDelegate.BindUFunction(this, FName("ApplyRegen"), ResourceRegen);
+
+			if (GetWorld()) {
+				GetWorld()->GetTimerManager().SetTimer(ResourceRegen.TimerHandle, RegenTimerDelegate, ResourceRegen.TickingRate, true, 0.f);
+			}
+		}
 }
 
 void AKCharacter::OnRep_CharacterData()
@@ -647,8 +667,15 @@ void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbilit
 		FVector CrosshairDirection;
 		CrosshairTrace(OutHit, CrosshairDirection, CollisionChannel, TargettingRange);
 		SpawnParam.InitialDirection = CrosshairDirection;
-		SpawnParam.TargetActor = OutHit.GetActor();
+		if (OutHit.GetActor()) {
+			SpawnParam.TargetActor = OutHit.GetActor();
+			UE_LOG(LogKizu, Warning, TEXT("OutHitActor : %s"), *OutHit.GetActor()->GetName());
+			UE_LOG(LogKizu, Warning, TEXT("SpawnParam TargetActor : %s"), *SpawnParam.TargetActor->GetName());
+		}
+		else SpawnParam.TargetActor = NULL;
 	}
+	else SpawnParam.TargetActor = NULL;
+
 	ServerSpawnSpawnableAbility(SpawnableAbilityClass, SpawnParam);
 }
 

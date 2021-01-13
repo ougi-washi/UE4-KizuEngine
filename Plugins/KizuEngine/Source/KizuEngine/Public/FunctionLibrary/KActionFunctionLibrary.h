@@ -57,4 +57,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Action")
 	static bool ExecuteActionFromDT(AKCharacter* KCharacter, UDataTable* ActionDataTable, FName ActionRowName, bool bUseCooldown = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Reaction")
+	static bool SendReaction(AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter, const FReactionSendingData& ReactionSendingData);
+
 };

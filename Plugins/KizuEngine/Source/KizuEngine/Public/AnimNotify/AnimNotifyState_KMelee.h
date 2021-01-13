@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Core/KAction.h"
 #include "AnimNotifyState_KMelee.generated.h"
 
 UENUM(BlueprintType)
@@ -65,22 +66,9 @@ public:
 	/** Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter before executing this notify via (Add Custom Damage) node */
 	UPROPERTY(EditAnywhere, Category = Base, meta = (Tooltip = "Custom damage ID. Make sure to add this ID to the stack of the custom damages in the KCharacter before executing this notify via (Add Custom Damage) node. "))
 	FString CustomDamageID;
-	/** Whether send a reaction to the targeted character or not. (It won't receive a reaction unless it's a character) */
-	UPROPERTY(EditAnywhere, Category = Reaction, meta = (Tooltip = "Whether send a reaction to the targeted character or not. (It won't receive a reaction unless it's a character)"))
-	uint8 bSendReaction : 1;
-	/** Whether to use a data table specific to the player character or a generic one set here for the reaction system */
-	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction", Tooltip = "Whether to use a data table specific to the player character or a generic one set here for the reaction system"))
-	uint8 bUseCharacterReactionDataTable: 1;
-	/** Data table to use as a source of the reaction */
-	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction && !bUseCharacterReactionDataTable", Tooltip = "Data table to use as a source of the reaction"))
-	UDataTable* ReactionDataTable;
-	/** Data table Row Name for the reaction */
-	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction", Tooltip = "Data table Row Name for the reaction"))
-	FString ReactionRowName = "None";
-	/** This is an experimental version of Sending a reaction which causes to have an instant reaction locally and a late reaction on the server depending on the bandwidth latency */
-	UPROPERTY(EditAnywhere, Category = Reaction, AdvancedDisplay, meta = (Tooltip = "This is an experimental version of Sending a reaction which causes to have an instant reaction locally and a late reaction on the server depending on the bandwidth latency"))
-	uint8 bSmoothReaction: 1;
-
+	/** Reaction data to send to the KCharacter to affect */
+	UPROPERTY(EditAnywhere, Category = Reaction, meta = (Tooltip = "Reaction data to send to the KCharacter to affect"))
+	FReactionSendingData ReactionSendingData;
 	UAnimNotifyState_KMelee();
 
 	virtual void NotifyBegin(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, float TotalDuration) override;
@@ -93,8 +81,6 @@ public:
 	void AffectActors(TArray<AActor*> &Actors);
 	// Make sure you call this when OwnerCharacter is valid (Not doing it locally to save iteration time)
 	void AffectActor(AActor* Actor);
-	// Make sure you call this when OwnerCharacter is valid (Not doing it locally to save iteration time)
-	void SendReaction(AActor* TargetActor);
 
 
 	// Note CanEditChange is only available when compiling with the editor.

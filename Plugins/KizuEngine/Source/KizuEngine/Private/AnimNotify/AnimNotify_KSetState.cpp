@@ -9,5 +9,4 @@ void UAnimNotify_KSetState::Notify(USkeletalMeshComponent* MeshComp, UAnimSequen
 		if (KCharacter->IsLocallyControlled())
 			KCharacter->SetCurrentStateFast(NewState);
 	}
-	else UE_LOG(LogKizu, Warning, TEXT("Cannot use the Set State AnimNotify on a non-KCharacter."));
 }

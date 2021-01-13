@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Core/Combat/KizuCombat.h"
 #include "GameFramework/Actor.h"
+#include "Core/KAction.h"
 #include "KSpawnableAbility.generated.h"
 
 class USceneComponent;
@@ -46,6 +47,9 @@ public:
 	bool bAffectOwnerFaction = false;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability|Effect")
 	bool bAffectOwner = false;
+	/** Reaction data to apply on Effect trigger*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data|Reaction")
+	FReactionSendingData ReactionSendingData;
 };
 
 USTRUCT(BlueprintType)
@@ -56,28 +60,28 @@ struct FSpawnableAbilityData
 public:
 
 	/** The name of the SpawnableAbility.*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data")
 	FString Name = "None";
 	/** If the SpawnableAbility is custom or relying on the base preset.*/
 	//UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
 	//bool bUsePreset = true;
 	/** The effects that are going to be executed on the trigger event of the SpawnableAbility.*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bUsePreset"), Category = "Kizu|Data|Effect")
 	TArray<FSpawnableAbilityEffect> Effects;
 	/** If the SpawnableAbility will affect the target only once. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data|Effect")
 	bool bAffectOnce = true;
 	/** If the SpawnableAbility is going to tick the effects. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data|Effect")
 	bool bTickEffects = false;
 	/** The ticking rate of the effects. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bTickEffects"), Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bTickEffects"), Category = "Kizu|Data|Effect")
 	float TickingRate = 1.f;
 	/** Set the Spawnable Ability to be destroyed on collision event after applying the effects */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data|Destroy")
 	uint8 bDestroyOnHit : 1;
 	/** The timer that will represent the end of the spawnable ability after calling "Destroy Spawnable". */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bDestroyOnHit"), Category = "Kizu|Spawnable Ability", AdvancedDisplay)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "bDestroyOnHit"), Category = "Kizu|Data|Destroy", AdvancedDisplay)
 	float DestroyTimer = 2.f;
 
 	FSpawnableAbilityData() {
@@ -103,10 +107,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UProjectileMovementComponent* ProjectileMovementComponent;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Spawnable Ability|Data")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Data")
 	FSpawnableAbilityData SpawnableAbilityData;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Kizu|Spawnable Ability|Data")
+	UPROPERTY(BlueprintReadWrite, Category = "Kizu|Data")
 	TArray<AActor*> AffectedActors;
 	/** Is true after colliding with something */
 	UPROPERTY()

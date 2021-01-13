@@ -4,6 +4,7 @@
 #include "AnimNotify/AnimNotifyState_KMelee.h"
 #include "Core/KCharacter.h"
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
+#include "FunctionLibrary/KActionFunctionLibrary.h"
 #include "Engine/DataTable.h"
 
 
@@ -11,7 +12,6 @@ UAnimNotifyState_KMelee::UAnimNotifyState_KMelee() : Super()
 {
 	bIgnoreSelf = true;
 	bAffectOtherFaction = true;
-	bUseCharacterReactionDataTable = true;
 }
 
 void UAnimNotifyState_KMelee::NotifyBegin(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, float TotalDuration)
@@ -80,32 +80,9 @@ void UAnimNotifyState_KMelee::AffectActor(AActor* Actor)
 		if (!DamagedActors.Contains(Actor)) {
 			DamagedActors.AddUnique(Actor);
 			OwnerCharacter->ApplyDamage_Replicated(Actor, FinalDamage, DamageType);
-			if (bSendReaction) SendReaction(Actor);
+			if (AKCharacter* TargetCharacter = Cast<AKCharacter>(Actor))
+				UKActionFunctionLibrary::SendReaction(OwnerCharacter, TargetCharacter, ReactionSendingData);
 		}
-	}
-}
-
-void UAnimNotifyState_KMelee::SendReaction(AActor* TargetActor)
-{
-	if (AKCharacter* TargetCharacter = Cast<AKCharacter>(TargetActor)) {
-		static const FString ContextString(TEXT("ReactionDataTable"));
-
-		FReactionData* ReactionData = nullptr;
-		if (bUseCharacterReactionDataTable && OwnerCharacter->ReactionDataTable)
-			ReactionData = OwnerCharacter->ReactionDataTable->FindRow<FReactionData>(FName(ReactionRowName), ContextString, true);
-		else if (ReactionDataTable)
-			ReactionData = ReactionDataTable->FindRow<FReactionData>(FName(ReactionRowName), ContextString, true);
-
-		if (ReactionData) {
-			if (bSmoothReaction) {
-				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_SkipSource); // Execute the reaction on everybody else besides the source (takes time as it depends on the bandwidth)
-				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_SourceOnly); // Execute the reaction for the source
-			}
-			else {
-				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_All);
-			}
-		}	
-		else UE_LOG(LogTemp, Warning, TEXT("Unable to find row in order to send a reaction."))
 	}
 }
 

@@ -10,6 +10,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
+#include "FunctionLibrary/KActionFunctionLibrary.h"
 #include "Components/SphereComponent.h"
 
 // Sets default values
@@ -209,6 +210,9 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectOnCharacter(FSpawnableAbil
 			UE_LOG(LogKizu, Log, TEXT("<%s> recovers <%s>'s <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpawnableAbilityEffect.ResourceName, SpawnableAbilityEffect.Value, *SpawnableAbilityData.Name);
 		}
 	}
+
+	UKActionFunctionLibrary::SendReaction(OwnerCharacter, TargetCharacter, SpawnableAbilityEffect.ReactionSendingData);
+	
 	ExecuteBuffsOnCharacter(SpawnableAbilityEffect.Buffs, OwnerCharacter, TargetCharacter);
 	AffectedActors.AddUnique(TargetCharacter);
 }

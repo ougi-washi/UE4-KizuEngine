@@ -172,6 +172,35 @@ public:
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FReactionSendingData
+{
+	GENERATED_BODY()
+
+public:
+
+	/** Whether send a reaction to the targeted character or not. (It won't receive a reaction unless it's a character) */
+	UPROPERTY(EditAnywhere, Category = Reaction, meta = (Tooltip = "Whether send a reaction to the targeted character or not. (It won't receive a reaction unless it's a character)"))
+	uint8 bSendReaction : 1;
+	/** Whether to use a data table specific to the player character or a generic one set here for the reaction system */
+	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction", Tooltip = "Whether to use a data table specific to the player character or a generic one set here for the reaction system"))
+	uint8 bUseCharacterReactionDataTable : 1;
+	/** Data table to use as a source of the reaction */
+	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction && !bUseCharacterReactionDataTable", Tooltip = "Data table to use as a source of the reaction"))
+	UDataTable* ReactionDataTable;
+	/** Data table Row Name for the reaction */
+	UPROPERTY(EditAnywhere, Category = Reaction, meta = (EditCondition = "bSendReaction", Tooltip = "Data table Row Name for the reaction"))
+	FString ReactionRowName = "None";
+	/** This is an experimental version of Sending a reaction which causes to have an instant reaction locally and a late reaction on the server depending on the bandwidth latency */
+	UPROPERTY(EditAnywhere, Category = Reaction, AdvancedDisplay, meta = (Tooltip = "This is an experimental version of Sending a reaction which causes to have an instant reaction locally and a late reaction on the server depending on the bandwidth latency"))
+	uint8 bSmoothReaction : 1;
+
+	FReactionSendingData() {
+		bUseCharacterReactionDataTable = true;
+	}
+};
+
+
 UCLASS(Abstract)
 class KIZUENGINE_API AKAction : public AActor
 {

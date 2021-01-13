@@ -37,6 +37,27 @@ public:
 	bool bCanBeBelowZero = false;
 };
 
+
+USTRUCT(BlueprintType)
+struct FKResourceRegeneration {
+
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	/** The custom resource name (DEFAULT_HEALTH for health) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	FString Name = "None";
+	/** The value to regenerate every second */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	float RegenValue = 1.f;
+	/** How much does it take to trigger the regeneration (default = every 1 second) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	float TickingRate = 1.f;
+	/** Timer handle to manage this resource regeneration ticking */
+	FTimerHandle TimerHandle;
+};
+
 USTRUCT(BlueprintType)
 struct FKCharacterData 
 {
@@ -58,6 +79,10 @@ public:
 	/** Custom resources array (Examples: Energy, Mana, Armors..) */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	TArray<FKResource> Resources;
+
+	/** Resource Regeneration array (Name has to be available in Resources) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	TArray<FKResourceRegeneration> ResourcesRegen;
 
 	/** Faction to define either it's an enemy or an ally to another Faction */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
@@ -106,10 +131,6 @@ private:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	// Temp pointer to the last spawned Actor. TODO : change to TSharedPointer
-	UPROPERTY(Replicated)
-	AActor* LastSpawnedActorRef;
 
 	// Custom Damage to fill, clear and use during Gameplay.
 	UPROPERTY()
@@ -161,16 +182,26 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Kizu|Character|Data|Reactions")
 	UDataTable* ReactionDataTable;
 
-	/* The array of the targets to interact with, damage or such*/
-	UPROPERTY(BlueprintReadWrite)
-	TArray<AActor*> TargetsArray;
-	
-	// Temp values //
+	/**
+	 * TEMP VALUES START
+	 */
+
 	/** This is a temp variable used for the Combo Systems, this is shared for now among all the combos (a queue has to be created later on). */
 	int32 ComboCounter = 0;
+	/* The array of the targets to interact with, damage or such. TODO : change to TSharedPointer */
+	UPROPERTY(BlueprintReadWrite)
+	TArray<AActor*> TargetsArray;
+	// Temp pointer to the last spawned Actor. TODO : change to TSharedPointer
+	UPROPERTY(Replicated)
+	AActor* LastSpawnedActorRef;
+
+	/**
+	 * TEMP VALUES END
+	 */
+
 
 	// Sets default values for this character's properties
-	AKCharacter();
+	AKCharacter(const FObjectInitializer& ObjectInitializer);
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -378,6 +409,17 @@ public:
 	/** Edit the custom damage in the Custom Damage stack */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Combat")
 	bool EditCustomDamage(const FString InID, const FCustomDamage& InCustomDamage);
+
+	/** Apply regeneration effect */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
+	void ApplyRegen(const FKResourceRegeneration& ResourceRegen);
+
+	/** Initialize All regeneration effects and create their timer handles */
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
+	void InitAllRegens(const TArray<FKResourceRegeneration>& ResourcesRegen);
+
+
+
 
 	/**
 	 * Character Montage and Animation Functionalities
