@@ -9,7 +9,7 @@ It can be used for a huge variety of projects due to its flexibility.
 Status
 ------
 
-Version : v0.2.210108 (pre-release)
+Version : v0.3.210113 (pre-release)
 
 Supported engine version : 4.25*
 
@@ -25,24 +25,34 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 
 
 ### Key features
-- Base character
-  - Resources (Health or any custom resources)
-  - Actions
-  - Reactions
-  - Cooldowns
-  - Custom Damage types
-  - Actions
-  - States
-- Spawnable abilities (Projectiles, Abilities..etc)
-- Buffs
+- Resources (Health or any custom resources/stats)
+  - Gain
+  - Loss
+  - Regeneration
+- Actions (Combo and state dependant)
+- Reactions (state and relative source position dependant)
+- Cooldowns
+- States
+- Custom Damage types
+- Spawnable abilities (Projectiles, Spells..etc)
+- Status effect (Buffs and Debuffs)
 - Inventory (Basic)
 - Objective system (Basic)
-- Ai (Task)
-### Extra
-- Melee AnimNotifyState
-- Spawnable Ability AnimNotify
-- Setting state AnimNotify
 
+### Extra
+- Anim notifies for :
+  - States
+  - Combo counter
+  - Melee tracing
+  - Spawnable Ability spawning
+- Ai Tasks :
+  - Executing Actions
+- Getters for most of the systems via Custom Arrays or Data Tables
+
+Setting Up The Plugin
+-----
+- Copy the Plugin inside your project's `Plugins` folder, or download the latest release and extract it into your project's `Plugins` folder.
+- Enable plugin in your project
 
 How to use
 -----
