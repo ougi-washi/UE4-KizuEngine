@@ -58,12 +58,6 @@ How to use
 -----
 [Documentation link here](https://hiro-ke.github.io/UE4-KizuEngine/) (Still WIP)
 
-
-See also
---------
-
- - [Unreal Engine 4 Plugins](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html).
- 
 Contact
 --------
 For any issue or other services :
@@ -72,5 +66,4 @@ For any issue or other services :
 
 License
 -------
-
 Kizu Engine is licensed under the MIT License, see LICENSE for more information.
