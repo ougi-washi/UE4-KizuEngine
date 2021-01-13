@@ -51,8 +51,9 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
 
 Setting Up The Plugin
 -----
-- Copy the Plugin inside your project's `Plugins` folder, or download the latest release and extract it into your project's `Plugins` folder.
-- Enable plugin in your project
+- Adding the plugin to your project's "/Plugins/" folder (Binaries can be found here).
+- After starting the editor, you'll be able to enable the KizuEngine Plugin.
+- It will require you to restart the Unreal Engine Editor. Now, all the framework components are accessible to your project.
 
 How to use
 -----
