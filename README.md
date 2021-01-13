@@ -30,7 +30,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
   - Loss
   - Regeneration
 - Actions (Combo and state dependant)
-- Reactions (state and relative source position dependant)
+- Reactions (State and relative source position dependant)
 - Cooldowns
 - States
 - Custom Damage types
