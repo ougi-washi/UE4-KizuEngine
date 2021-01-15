@@ -17,8 +17,9 @@ This page represents the documentation of the KizuEngine framework that will mak
 |Functions samples|
 |As an exmaple of some functions, these resources Blueprints Functions offer you the possibility to change the values of the resources. Eventually, you're not obliged to use these unless you want to create some custom system.|
 |![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ResourcesBP.png)|
+|Events can as well be called to trigger specific events or functions (Eg. Play Animation when gaining health or when leveling up, etc.)|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CharacterEvents.png)|
 |Character States|
-|-------|
 |Characters have eventually states that identify what state are they in in order to know whether they can execute a specific Action or Reaction or not. There is a list of all available states and also a single valid state.|
 |![3](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StatesData.png)|
 |Eventually setting is as easy as calling the following "ServerSetCurrentstate" function.|
