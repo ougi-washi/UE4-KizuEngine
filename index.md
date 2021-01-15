@@ -14,8 +14,7 @@ This page represents the documentation of the KizuEngine framework that will mak
 |-------|
 |Create a character that inherits from KCharacter and you'll be able to give it all kind of resources Data. This can include health, energy, physical power, magical power, armor, etc. Any kind of Resources owned by the character will be replicated and can be accessed from multiple other functions or events around the game.|
 |![1](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CharacterData.png)|
-|Functions samples|
-|As an exmaple of some functions, these resources Blueprints Functions offer you the possibility to change the values of the resources. Eventually, you're not obliged to use these unless you want to create some custom system.|
+|As an exmaple of some functions, these resources Blueprints Functions gives you the possibility to change the values of the resources. Eventually, you're not obliged to use these unless you want to create some custom system.|
 |![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ResourcesBP.png)|
 |Events can as well be called to trigger specific events or functions (Eg. Play Animation when gaining health or when leveling up, etc.)|
 |![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CharacterEvents.png)|
@@ -36,6 +35,8 @@ Name : representing the name or ID of the Action Data, it's recommanded to keep 
 Montage data array : this represents all the animations executed by this specific actions. each animation can be executed relying on a set of conditions (direction and valid character states). The system will go through all of the animations, check your Direction compared to the Camera or Actor rotation and check your state in order to determinate what Montage to pick exactly. This also follows a combo counter, wherever it finds multiple results, it moves to the next one if you retrigger the same action wihout calling a "Reset Combo" AnimNotify.
 Resource Name, Value and cooldown : These are self explanatory where it represents the basic Actions system over relying on a cooldown and what resource to consume. You have to set a resource even if it's 0 as value. (will be fixed soon).|
 |![6](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ActionDT.png)|
+|Executing actions is possible through the following functions.|
+|![6](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ActionsBP.png)|
 
 ### Reactions
 
@@ -59,8 +60,7 @@ Smooth reaction (Experimental) : is an implementation that makes the reaction ha
 Ticking/Affect once : The Spawnable Ability can eventually affect the collided actors everytime they collide again with them and can have a ticking effect that can occur depending on the rate.
 Destroy actor : The Destroy on hit will start the destruction timer the moment it collides, will disable all collisions and make it invisible. This will allow to have enough time to trigger effects and sounds|
 |![8](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbility.png)|
-|Functions samples|
-|As an exmaple of some functions, these Ability System Blueprints Functions offer you the ability to customize some of the events that happen such as initiating the movement or such.|
+|As an exmaple of some functions, these Ability System Blueprints Functions gives you the ability to customize some of the events that happen such as initiating the movement or such.|
 |![9](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbilityFunc.png)|
 
 ### Buff/Debuff Class
@@ -71,7 +71,25 @@ Destroy actor : The Destroy on hit will start the destruction timer the moment i
 Attaching the actor to the target would basically attach to the target character this buff on a specific socket.
 Use Time Dilation : This would cause a replicated time dilation during the duration of the Buff/Debuff.|
 |![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Buff.png)|
-|Functions samples|
-|As an exmaple of some functions, these Buffs Blueprints offer you to customize the Buff and make it have a non linear effects or any type of effect depending on the needs.|
+|As an exmaple of some functions, these Buffs Blueprints gives you to customize the Buff and make it have a non linear effects or any type of effect depending on the needs.|
 |![12](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/BuffFuncBP.png)|
 
+### Melee (Close interaction)
+
+|Melee AnimNotify State|
+|-------|
+|"KMelee" or "Melee (Kizu)" is an AnimNotifyState that would affect the target in the collision by affecting the health of the target. Setting it up will be by : 
+Adding a collision in your KCharacter and giving it a tag that you'll use as a "Collision Component Tag" in the Notify.
+Setting up what faction will it affect and whether it should affect self or not. 
+Value source can be used to set the damage value. "Static" will be a constant that you'll set in the AnimNotify details panel. "Dynamic" will be via a percentage from the Resources you have in your KCharacter. "Custom" will be by adding custom damage to your character before executing this Notify then using its ID for a specific amount of damage.
+Whether to send reaction or not and set up the data of the reaction. (Reaction Data sending variables explained at Spawnable Ability).|
+|![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/MeleeNotify.png)|
+|Adding a custom damage is possible through calling these functions|
+|![12](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CustomDamageBP.png)|
+
+### Cooldowns
+
+|Cooldown System|
+|-------|
+|As every Action has a cooldown, you can access and manage the cooldowns easily through these functions. |
+|![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CooldownsBP.png)|
