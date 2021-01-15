@@ -6,7 +6,7 @@
 
 ## Introduction
 
-This page represents the documentation of the KizuEngine framework that will make it easy to the developers to make Replicated games.
+This page represents the documentation of the KizuEngine framework that will make it easy to the developers to make replicated games (mostly combat systems).
 
 ## How to use
 
