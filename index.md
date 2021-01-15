@@ -30,7 +30,7 @@ This page represents the documentation of the KizuEngine framework that will mak
 
 |Actions system|
 |-------|
-|So now that we have a character class we chose to run animations and make them execute specific actions. This is possible through creating an "ActionData" Data Table and filling it with the required data. So in every single row you have : |
+|So now that we have a character class we chose to run animations and make them execute specific actions. This is possible through creating an "ActionData" Data Table and filling it with the required data. So in every single row has : |
 |Name : representing the name or ID of the Action Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Actions without relying on a data table.|
 |Montage data array : this represents all the animations executed by this specific actions. each animation can be executed relying on a set of conditions (direction and valid character states). The system will go through all of the animations, check your Direction compared to the Camera or Actor rotation and check your state in order to determinate what Montage to pick exactly. This also follows a combo counter, wherever it finds multiple results, it moves to the next one if you retrigger the same action wihout calling a "Reset Combo" AnimNotify.|
 |Resource Name, Value and cooldown : These are self explanatory where it represents the basic Actions system over relying on a cooldown and what resource to consume. You have to set a resource even if it's 0 as value. (will be fixed soon).|
