@@ -97,4 +97,3 @@ Adding a collision in your KCharacter and giving it a tag that you'll use as a "
 |-------|
 |As every Action has a cooldown, you can access and manage the cooldowns easily through these functions. |
 |![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CooldownsBP.png)|
-
