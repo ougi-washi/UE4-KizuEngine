@@ -1,5 +1,9 @@
+<p align="center">
+  <img src="https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Icon128.png">
+</p>
+
 ## Introduction
-![1](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Icon128.png)
+
 This page represents the documentation of the KizuEngine framework that will make it easy to the developers to make Replicated games. 
 
 ## How to use
