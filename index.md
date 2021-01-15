@@ -14,11 +14,37 @@ This page represents the documentation of the KizuEngine framework that will mak
 |-------|
 |Create a character that inherits from KCharacter and you'll be able to give it all kind of resources Data. This can include health, energy, physical power, magical power, armor, etc. Any kind of Resources owned by the character will be replicated and can be accessed from multiple other functions or events around the game.|
 |![1](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CharacterData.png)|
-
 |Functions samples|
-|-------|
 |As an exmaple of some functions, these resources Blueprints Functions offer you the possibility to change the values of the resources. Eventually, you're not obliged to use these unless you want to create some custom system.|
 |![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ResourcesBP.png)|
+|Character States|
+|-------|
+|Characters have eventually states that identify what state are they in in order to know whether they can execute a specific Action or Reaction or not. There is a list of all available states and also a single valid state.|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StatesData.png)|
+|Eventually setting is as easy as calling the following "ServerSetCurrentstate" function.|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ServerSetCurrentstate.png)|
+|Or during an animation by using an AnimNotify called KSetState or "Set State (Kizu)".|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StateNotify.png)|
+
+|Actions system|
+|-------|
+|So now that we have a character class we chose to run animations and make them execute specific actions. This is possible through creating an "ActionData" Data Table and filling it with the required data.
+So in every single row you have : 
+Name : representing the name or ID of the Action Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Actions without relying on a data table.
+Montage data array : this represents all the animations executed by this specific actions. each animation can be executed relying on a set of conditions (direction and valid character states). The system will go through all of the animations, check your Direction compared to the Camera or Actor rotation and check your state in order to determinate what Montage to pick exactly. This also follows a combo counter, wherever it finds multiple results, it moves to the next one if you retrigger the same action wihout calling a "Reset Combo" AnimNotify.
+Resource Name, Value and cooldown : These are self explanatory where it represents the basic Actions system over relying on a cooldown and what resource to consume. You have to set a resource even if it's 0 as value. (will be fixed soon).|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ActionsDT.png)|
+
+|Reaction system|
+|-------|
+|Characters can send reactions to each others, whether via a function call, with a melee or a spawnable ability. This is possible through creating an "ReactionData" Data Table and filling it with the required data.
+So in every single row you have : 
+Name : representing the name or ID of the Reaction Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Reactions without relying on a data table.
+You do have the choice whether you'll use basic or advanced reactions.
+Basic reactions will just check the state of the character. However, Advanced reactions check if the state and the relative source position of the reaction causing them to have a specific reaction for each specific side (Front, Back, Left, Right).
+The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
+|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
+
 
 ### Spawnable Ability Class
 
