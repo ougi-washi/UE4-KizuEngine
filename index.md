@@ -45,8 +45,8 @@ This page represents the documentation of the KizuEngine framework that will mak
 |Characters can send reactions to each others, whether via a function call, with a melee or a spawnable ability. This is possible through creating an "ReactionData" Data Table and filling it with the required data. So in every single row you have : |
 |Name : representing the name or ID of the Reaction Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Reactions without relying on a data table.|
 |You do have the choice whether you'll use basic or advanced reactions.
-Basic reactions will just check the state of the character. However, Advanced reactions check if the state and the relative source position of the reaction causing them to have a specific reaction for each specific side (Front, Back, Left, Right).
-The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
+Basic reactions will just check the state of the character. However, Advanced reactions check if the state and the relative source position of the reaction causing them to have a specific reaction for each specific side (Front, Back, Left, Right).|
+|The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
 |![7](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
 
 
