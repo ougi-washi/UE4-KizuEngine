@@ -53,7 +53,6 @@ Basic reactions will just check the state of the character. However, Advanced re
 |The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
 |![7](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
 
-
 ### Spawnable Ability Class
 
 |Base Spawnable Ability|
