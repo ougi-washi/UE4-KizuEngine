@@ -42,9 +42,9 @@ This page represents the documentation of the KizuEngine framework that will mak
 
 |Reaction system|
 |-------|
-|Characters can send reactions to each others, whether via a function call, with a melee or a spawnable ability. This is possible through creating an "ReactionData" Data Table and filling it with the required data. So in every single row you have : 
-Name : representing the name or ID of the Reaction Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Reactions without relying on a data table.
-You do have the choice whether you'll use basic or advanced reactions.
+|Characters can send reactions to each others, whether via a function call, with a melee or a spawnable ability. This is possible through creating an "ReactionData" Data Table and filling it with the required data. So in every single row you have :|
+|Name : representing the name or ID of the Reaction Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Reactions without relying on a data table.|
+|You do have the choice whether you'll use basic or advanced reactions.
 Basic reactions will just check the state of the character. However, Advanced reactions check if the state and the relative source position of the reaction causing them to have a specific reaction for each specific side (Front, Back, Left, Right).
 The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
 |![7](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
@@ -54,11 +54,11 @@ The filter option is not implemented yet, where you can have custom filters asid
 
 |Base Spawnable Ability|
 |-------|
-|Create a spawnable ability (Projectiles, Spells, Other) that inherits from KSpawnableAbility and you'll be able to set its data in the default class section. The spawnable ability data contains an array of effects where every effect would affect the resources of the other actors in collision during Spawn or after colliding. The Spawnable Ability can affect the owner, a different faction from the owner's or the owner's faction. Aside from that, every Effect can contain one or multiple status effects(buff/debuff) that will be applied on the target affected. 
-Reactions :  you can also send a reaction to the affected target (Whether specific reaction that depends on this Spawnable Ability or depends on a data table in the affected actor.
-Smooth reaction (Experimental) : is an implementation that makes the reaction happens locally before sending it to the server, the client then will execute it locally and then it will happen on all the other clients besides the reaction source and the reaction target. This functionality is still in testing and may not 100% be reliable.
-Ticking/Affect once : The Spawnable Ability can eventually affect the collided actors everytime they collide again with them and can have a ticking effect that can occur depending on the rate.
-Destroy actor : The Destroy on hit will start the destruction timer the moment it collides, will disable all collisions and make it invisible. This will allow to have enough time to trigger effects and sounds|
+|Create a spawnable ability (Projectiles, Spells, Other) that inherits from KSpawnableAbility and you'll be able to set its data in the default class section. The spawnable ability data contains an array of effects where every effect would affect the resources of the other actors in collision during Spawn or after colliding. The Spawnable Ability can affect the owner, a different faction from the owner's or the owner's faction. Aside from that, every Effect can contain one or multiple status effects(buff/debuff) that will be applied on the target affected.|
+|Reactions :  you can also send a reaction to the affected target (Whether specific reaction that depends on this Spawnable Ability or depends on a data table in the affected actor.|
+|Smooth reaction (Experimental) : is an implementation that makes the reaction happens locally before sending it to the server, the client then will execute it locally and then it will happen on all the other clients besides the reaction source and the reaction target. This functionality is still in testing and may not 100% be reliable.|
+|Ticking/Affect once : The Spawnable Ability can eventually affect the collided actors everytime they collide again with them and can have a ticking effect that can occur depending on the rate.|
+|Destroy actor : The Destroy on hit will start the destruction timer the moment it collides, will disable all collisions and make it invisible. This will allow to have enough time to trigger effects and sounds|
 |![8](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbility.png)|
 |As an exmaple of some functions, these Ability System Blueprints Functions gives you the ability to customize some of the events that happen such as initiating the movement or such.|
 |![9](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbilityFunc.png)|
@@ -79,10 +79,10 @@ Use Time Dilation : This would cause a replicated time dilation during the durat
 |Melee AnimNotify State|
 |-------|
 |"KMelee" or "Melee (Kizu)" is an AnimNotifyState that would affect the target in the collision by affecting the health of the target. Setting it up will be by : 
-Adding a collision in your KCharacter and giving it a tag that you'll use as a "Collision Component Tag" in the Notify.
-Setting up what faction will it affect and whether it should affect self or not. 
-Value source can be used to set the damage value. "Static" will be a constant that you'll set in the AnimNotify details panel. "Dynamic" will be via a percentage from the Resources you have in your KCharacter. "Custom" will be by adding custom damage to your character before executing this Notify then using its ID for a specific amount of damage.
-Whether to send reaction or not and set up the data of the reaction. (Reaction Data sending variables explained at Spawnable Ability).|
+Adding a collision in your KCharacter and giving it a tag that you'll use as a "Collision Component Tag" in the Notify.|
+|Setting up what faction will it affect and whether it should affect self or not.|
+|Value source can be used to set the damage value. "Static" will be a constant that you'll set in the AnimNotify details panel. "Dynamic" will be via a percentage from the Resources you have in your KCharacter. "Custom" will be by adding custom damage to your character before executing this Notify then using its ID for a specific amount of damage.|
+|Reaction Data Sending section determines whether to send reaction or not and set up the data of the reaction. (Reaction Data sending variables explained at Spawnable Ability).|
 |![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/MeleeNotify.png)|
 |Adding a custom damage is possible through calling these functions|
 |![12](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/CustomDamageBP.png)|
