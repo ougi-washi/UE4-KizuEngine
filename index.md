@@ -80,7 +80,7 @@ Use Time Dilation : This would cause a replicated time dilation during the durat
 |-------|
 |"KMelee" or "Melee (Kizu)" is an AnimNotifyState that would affect the target in the collision by affecting the health of the target. Setting it up will be by : 
 Adding a collision in your KCharacter and giving it a tag that you'll use as a "Collision Component Tag" in the Notify.|
-|Setting up what faction will it affect and whether it should affect self or not.|
+|Setting up what faction will it affect and whether it should affect self or not. |
 |Value source can be used to set the damage value. "Static" will be a constant that you'll set in the AnimNotify details panel. "Dynamic" will be via a percentage from the Resources you have in your KCharacter. "Custom" will be by adding custom damage to your character before executing this Notify then using its ID for a specific amount of damage.|
 |Reaction Data Sending section determines whether to send reaction or not and set up the data of the reaction. (Reaction Data sending variables explained at Spawnable Ability).|
 |![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/MeleeNotify.png)|
