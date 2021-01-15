@@ -67,8 +67,8 @@ Basic reactions will just check the state of the character. However, Advanced re
 
 |Base Buffs and Debuffs|
 |-------|
-|Create a Buff/Debuff (Heal over time, Damage over time, resource gain over time.. etc) that inherits from KBuff and you'll be able to set its data in the default class section. The Buff data contains an array of effects where every effect would affect the resources of the other actor by setting its "Ticking Rate", "Duration" and "Ticking Delay". 
-Attaching the actor to the target would basically attach to the target character this buff on a specific socket.
+|Create a Buff/Debuff (Heal over time, Damage over time, resource gain over time.. etc) that inherits from KBuff and you'll be able to set its data in the default class section. The Buff data contains an array of effects where every effect would affect the resources of the other actor by setting its "Ticking Rate", "Duration" and "Ticking Delay".|
+|Attaching the actor to the target would basically attach to the target character this buff on a specific socket.
 Use Time Dilation : This would cause a replicated time dilation during the duration of the Buff/Debuff.|
 |![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Buff.png)|
 |As an exmaple of some functions, these Buffs Blueprints gives you to customize the Buff and make it have a non linear effects or any type of effect depending on the needs.|
