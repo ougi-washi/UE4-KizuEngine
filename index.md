@@ -20,11 +20,11 @@ This page represents the documentation of the KizuEngine framework that will mak
 |Character States|
 |-------|
 |Characters have eventually states that identify what state are they in in order to know whether they can execute a specific Action or Reaction or not. There is a list of all available states and also a single valid state.|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StatesData.png)|
+|![3](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StatesData.png)|
 |Eventually setting is as easy as calling the following "ServerSetCurrentstate" function.|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ServerSetCurrentstate.png)|
+|![4](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ServerSetCurrentstate.png)|
 |Or during an animation by using an AnimNotify called KSetState or "Set State (Kizu)".|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StateNotify.png)|
+|![5](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/StateNotify.png)|
 
 ### Actions
 
@@ -35,7 +35,7 @@ So in every single row you have :
 Name : representing the name or ID of the Action Data, it's recommanded to keep it same as row name in case you'd want to store and parse an array of Actions without relying on a data table.
 Montage data array : this represents all the animations executed by this specific actions. each animation can be executed relying on a set of conditions (direction and valid character states). The system will go through all of the animations, check your Direction compared to the Camera or Actor rotation and check your state in order to determinate what Montage to pick exactly. This also follows a combo counter, wherever it finds multiple results, it moves to the next one if you retrigger the same action wihout calling a "Reset Combo" AnimNotify.
 Resource Name, Value and cooldown : These are self explanatory where it represents the basic Actions system over relying on a cooldown and what resource to consume. You have to set a resource even if it's 0 as value. (will be fixed soon).|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ActionDT.png)|
+|![6](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ActionDT.png)|
 
 ### Reactions
 
@@ -47,7 +47,7 @@ Name : representing the name or ID of the Reaction Data, it's recommanded to kee
 You do have the choice whether you'll use basic or advanced reactions.
 Basic reactions will just check the state of the character. However, Advanced reactions check if the state and the relative source position of the reaction causing them to have a specific reaction for each specific side (Front, Back, Left, Right).
 The filter option is not implemented yet, where you can have custom filters aside from the relative position and state (will be implemented soon).|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
+|![7](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/ReactionDT.png)|
 
 
 ### Spawnable Ability Class
@@ -59,10 +59,10 @@ Reactions :  you can also send a reaction to the affected target (Whether specif
 Smooth reaction (Experimental) : is an implementation that makes the reaction happens locally before sending it to the server, the client then will execute it locally and then it will happen on all the other clients besides the reaction source and the reaction target. This functionality is still in testing and may not 100% be reliable.
 Ticking/Affect once : The Spawnable Ability can eventually affect the collided actors everytime they collide again with them and can have a ticking effect that can occur depending on the rate.
 Destroy actor : The Destroy on hit will start the destruction timer the moment it collides, will disable all collisions and make it invisible. This will allow to have enough time to trigger effects and sounds|
-|![1](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbility.png)|
+|![8](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbility.png)|
 |Functions samples|
 |As an exmaple of some functions, these Ability System Blueprints Functions offer you the ability to customize some of the events that happen such as initiating the movement or such.|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbilityFunc.png)|
+|![9](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/SpawnableAbilityFunc.png)|
 
 ### Buff/Debuff Class
 
@@ -71,8 +71,8 @@ Destroy actor : The Destroy on hit will start the destruction timer the moment i
 |Create a Buff/Debuff (Heal over time, Damage over time, resource gain over time.. etc) that inherits from KBuff and you'll be able to set its data in the default class section. The Buff data contains an array of effects where every effect would affect the resources of the other actor by setting its "Ticking Rate", "Duration" and "Ticking Delay". 
 Attaching the actor to the target would basically attach to the target character this buff on a specific socket.
 Use Time Dilation : This would cause a replicated time dilation during the duration of the Buff/Debuff.|
-|![1](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Buff.png)|
+|![10](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Buff.png)|
 |Functions samples|
 |As an exmaple of some functions, these Buffs Blueprints offer you to customize the Buff and make it have a non linear effects or any type of effect depending on the needs.|
-|![2](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/BuffFuncBP.png)|
+|![12](https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/BuffFuncBP.png)|
 
