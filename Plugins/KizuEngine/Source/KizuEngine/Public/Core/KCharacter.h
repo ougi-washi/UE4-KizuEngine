@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/Engine.h"
+#include "Core/KCharLibrary.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Core/KAction.h"
@@ -13,111 +14,7 @@
 class AKBuff;
 class AKSpawnableAbility;
 class UDataTable;
-
-USTRUCT(BlueprintType)
-struct FKResource {
-
-	GENERATED_USTRUCT_BODY()
-
-public:
-	/** The custom resource name */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	FString Name = "None";
-
-	/** The custom resource max value */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float MaxValue = 100.f;
-
-	/** The custom resource current value */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float CurrentValue = 100.f;
-
-	/** Whether the value can be below 0 or not. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	bool bCanBeBelowZero = false;
-};
-
-
-USTRUCT(BlueprintType)
-struct FKResourceRegeneration {
-
-	GENERATED_USTRUCT_BODY()
-
-public:
-
-	/** The custom resource name (DEFAULT_HEALTH for health) */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	FString Name = "None";
-	/** The value to regenerate every second */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float RegenValue = 1.f;
-	/** How much does it take to trigger the regeneration (default = every 1 second) */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float TickingRate = 1.f;
-	/** Timer handle to manage this resource regeneration ticking */
-	FTimerHandle TimerHandle;
-};
-
-USTRUCT(BlueprintType)
-struct FKCharacterData 
-{
-	GENERATED_USTRUCT_BODY()
-
-public:
-	/** The character name. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	FString Name = "Character_Name";
-
-	/** The character max health. The current health can never exceed this amount */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float MaxHealth = 100.f;
-
-	/** The character current health. When reduced to 0, they are considered dead. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	float CurrentHealth = 100.f;
-
-	/** Custom resources array (Examples: Energy, Mana, Armors..) */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	TArray<FKResource> Resources;
-
-	/** Resource Regeneration array (Name has to be available in Resources) */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	TArray<FKResourceRegeneration> ResourcesRegen;
-
-	/** Faction to define either it's an enemy or an ally to another Faction */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
-	uint8 Faction = 0;
-};
-
-USTRUCT(BlueprintType)
-struct FCustomDamage 
-{
-	GENERATED_USTRUCT_BODY()
-
-public:
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
-	FString ID;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
-	float Value;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Damage")
-	TSubclassOf<UDamageType> DamageType;
-
-	FORCEINLINE bool operator==(const FCustomDamage& rhs) const
-	{
-		return (rhs.ID == this->ID);
-	}
-
-	FCustomDamage() {
-		// Default Constructor
-	}
-
-	FCustomDamage(FString InID) {
-		this->ID = InID;
-	}
-};
+ 
 
 UCLASS()
 class KIZUENGINE_API AKCharacter : public ACharacter
@@ -192,8 +89,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<AActor*> TargetsArray;
 	// Temp pointer to the last spawned Actor. TODO : change to TSharedPointer
-	UPROPERTY(Replicated)
-	AActor* LastSpawnedActorRef;
+	//UPROPERTY(Replicated)
+	//AActor* LastSpawnedActorRef;
 
 	/**
 	 * TEMP VALUES END
@@ -240,6 +137,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Trace")
 	bool CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel = ECC_Pawn, const float Distance = 2000.f, const bool bDebug = false);
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EXWorld|Character|General")
+	FVector GetCrosshairDirection();
+
 	/** Add an actor to the saved targets array for later  usage. */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General|Targetting")
 	void AddActorToTargetsArray(AActor* TargetActor);
@@ -284,9 +184,17 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentHealth(const float inValue);
 
-	/** Sets the character current energy.*/
+	/** Sets the character maximum health.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void ServerSetMaxHealth(const float inValue);
+
+	/** Sets the character current value of a resource.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetCurrentResource(const FString &ResourceName, const float inValue);
+
+	/** Sets the character max value of a resource.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void ServerSetMaxResource(const FString& ResourceName, const float inValue);
 
 	/** Sets the character Faction.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
@@ -302,6 +210,12 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kizu|Character|Data")
 	float onTakeDamageModifier(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
+
+	/**
+	* Get the health max and current values from the character data
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	void GetHealthData(float& CurrentHealth, float& MaxHealth);
 
 	/**
 	* Get a resource from the character data
@@ -377,6 +291,27 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void OnHealthLoss(const float& Value);
 	virtual void OnHealthLoss_Native(const float& Value);
+
+	/** Returns the Stat struct with a given Name */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
+	bool GetStat(const FString StatName, FKStat& ResultStat);
+
+	/** Returns the Stat value  with a given Name */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
+	bool GetStatValue(const FString StatName, float &ResultValue);
+
+	/** Sets the character stat value.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	void ServerSetStatValue(const FString& StatName, const float inValue);
+
+	/**
+	* Event called when a stat value is changed
+	* @param ResourceName The Stat name
+	* @param Value The new value 
+	*/
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data|Stat")
+		void OnStatChange(const FString& StatName, const float& Value);
+	virtual void OnStatChange_Native(const FString& StatName, const float& Value);
 
 	/**
 	 * Character Combat functionalities

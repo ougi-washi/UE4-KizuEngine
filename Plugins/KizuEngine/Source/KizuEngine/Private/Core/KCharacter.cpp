@@ -9,6 +9,7 @@
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -27,7 +28,7 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 	//Replicate Character stats.
 	DOREPLIFETIME(AKCharacter, CharacterData);
-	DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
+	//DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
 	DOREPLIFETIME(AKCharacter, Inventory);
 	DOREPLIFETIME(AKCharacter, AchievedObjectiveRequirements);
 	DOREPLIFETIME_CONDITION(AKCharacter, ActiveState, COND_SkipOwner);
@@ -52,6 +53,11 @@ void AKCharacter::ServerSetCurrentHealth_Implementation(const float inValue)
 	OnCurrentHealthChange_Native();
 }
 
+void AKCharacter::ServerSetMaxHealth_Implementation(const float inValue)
+{
+	CharacterData.MaxHealth = inValue;
+}
+
 void AKCharacter::ServerSetCurrentResource_Implementation(const FString& ResourceName, const float inValue)
 {
 	for (FKResource& Resource : CharacterData.Resources) {
@@ -60,6 +66,13 @@ void AKCharacter::ServerSetCurrentResource_Implementation(const FString& Resourc
 	}
 }
 
+void AKCharacter::ServerSetMaxResource_Implementation(const FString& ResourceName, const float inValue)
+{
+	for (FKResource& Resource : CharacterData.Resources) {
+		if (Resource.Name == ResourceName)
+			Resource.MaxValue = inValue;
+	}
+}
 
 void AKCharacter::ServerSetFaction_Implementation(const uint8 NewFaction)
 {
@@ -68,6 +81,8 @@ void AKCharacter::ServerSetFaction_Implementation(const uint8 NewFaction)
 
 bool AKCharacter::GainHealth(const float ValueToGain /*= 10*/)
 {
+	if (CharacterData.CurrentHealth == CharacterData.MaxHealth)
+		return false;
 	if (ValueToGain < 0)
 		return false;
 	float FinalValue = CharacterData.CurrentHealth + ValueToGain;
@@ -76,6 +91,12 @@ bool AKCharacter::GainHealth(const float ValueToGain /*= 10*/)
 	ServerSetCurrentHealth(FinalValue);
 	OnHealthGain_Native(ValueToGain);
 	return true;
+}
+
+void AKCharacter::GetHealthData(float& CurrentHealth, float& MaxHealth)
+{
+	CurrentHealth = CharacterData.CurrentHealth;
+	MaxHealth = CharacterData.MaxHealth;
 }
 
 bool AKCharacter::GetResource(const FString ResourceName, FKResource& ResultResource)
@@ -119,6 +140,9 @@ bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& Res
 bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGain)
 {
 	FKResource Resource;
+	if (ResourceName == "DEFAULT_HEALTH") {
+		return GainHealth(ValueToGain);
+	}
 	if (GetResource(ResourceName, Resource)) {
 
 		float FinalValue = Resource.CurrentValue + ValueToGain;
@@ -174,6 +198,46 @@ void AKCharacter::OnHealthLoss_Native(const float& Value)
 }
 
 
+bool AKCharacter::GetStat(const FString StatName, FKStat& ResultStat)
+{
+	for (FKStat& Stat : CharacterData.Stats) 
+	{
+		if (Stat.Name == StatName) 
+		{
+			ResultStat = Stat;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AKCharacter::GetStatValue(const FString StatName, float& ResultValue)
+{
+	FKStat Stat;
+	if (GetStat(StatName, Stat))
+	{
+		ResultValue = Stat.Value;
+		return true;
+	}
+	return false;
+}
+
+void AKCharacter::ServerSetStatValue_Implementation(const FString& StatName, const float inValue)
+{
+	for (FKStat& Stat : CharacterData.Stats) {
+		if (Stat.Name == StatName) 
+		{
+			Stat.Value= inValue;
+			OnStatChange_Native(StatName, inValue);
+		}
+	}
+}
+
+void AKCharacter::OnStatChange_Native(const FString& StatName, const float& Value)
+{
+	OnStatChange(StatName, Value);
+}
+
 void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	ServerApplyDamage(Target, Damage, DamageType);
@@ -206,15 +270,19 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 {
 	Damage = onTakeDamageModifier(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	float FinalValue = CharacterData.CurrentHealth - Damage;
+	if (CharacterData.CurrentHealth > 0) {
 
-	if (FinalValue <= 0.f) {
-		ServerSetCurrentHealth(0.f);
-		ExecuteDeathEvent_Native();
+		float FinalValue = CharacterData.CurrentHealth - Damage;
+
+		if (FinalValue <= 0.f) {
+			ServerSetCurrentHealth(0.f);
+			ExecuteDeathEvent_Native();
+		}
+		else ServerSetCurrentHealth(FinalValue);
+
+		OnHealthLoss_Native(Damage);
 	}
-	else ServerSetCurrentHealth(FinalValue);
-
-	OnHealthLoss_Native(Damage);
+	
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
@@ -288,7 +356,7 @@ void AKCharacter::ExecuteDeathEvent_Native()
 {
 	if (bPlayDeathMontage && DeathMontage)
 		MontagePlay_Replicated(DeathMontage);
-	if (bSetStateOnDeath)
+	if (bSetStateOnDeath && ActiveState != DeathState)
 		SetCurrentStateFast(DeathState);
 	ExecuteDeathEvent();
 }
@@ -318,7 +386,7 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 	if (World) {
 		FActorSpawnParameters ActorSpawnParams;
 		ActorSpawnParams.Owner = this;
-		LastSpawnedActorRef = World->SpawnActor<AActor>(Class, Transform, ActorSpawnParams);
+		World->SpawnActor<AActor>(Class, Transform, ActorSpawnParams);
 	}
 }
 
@@ -339,10 +407,35 @@ bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const E
 		if (UWorld* World = GetWorld()) {
 			FCollisionQueryParams CollisionParams;
 			CollisionParams.AddIgnoredActor(this);
-			return World->LineTraceSingleByObjectType(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
+			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
 		}
 	}
 	return false;
+}
+
+FVector AKCharacter::GetCrosshairDirection()
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) {
+		// Get viewport size
+		int32 ViewportSizeX;
+		int32 ViewportSizeY;
+		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
+		FVector CrosshairLocation_Start;
+		FVector ScreenDirection;
+		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, ScreenDirection);
+		FHitResult OutHit;
+		if (CrosshairTrace(OutHit, ScreenDirection, ECC_Visibility, 100000.f, true))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Has hit"));
+			return UKismetMathLibrary::GetDirectionUnitVector(CrosshairLocation_Start, OutHit.ImpactPoint);
+		}
+		else {
+			UE_LOG(LogTemp, Warning, TEXT("Did not hit"));
+			return ScreenDirection;
+		}
+	}
+	else return FVector::ZeroVector;
 }
 
 void AKCharacter::AddActorToTargetsArray(AActor* TargetActor)
@@ -663,16 +756,25 @@ void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbilit
 	SpawnParam.bInitizalizeMobility = bInitializeMovement;
 	SpawnParam.Transform = GetMesh()->DoesSocketExist(MeshSocketToSpawnAt) ? GetMesh()->GetSocketTransform(MeshSocketToSpawnAt) : GetActorTransform();
 	if (bUseCrosshair) {
+		
+		// Set Target Actor
 		FHitResult OutHit;
 		FVector CrosshairDirection;
 		CrosshairTrace(OutHit, CrosshairDirection, CollisionChannel, TargettingRange);
-		SpawnParam.InitialDirection = CrosshairDirection;
 		if (OutHit.GetActor()) {
 			SpawnParam.TargetActor = OutHit.GetActor();
-			UE_LOG(LogKizu, Warning, TEXT("OutHitActor : %s"), *OutHit.GetActor()->GetName());
-			UE_LOG(LogKizu, Warning, TEXT("SpawnParam TargetActor : %s"), *SpawnParam.TargetActor->GetName());
 		}
 		else SpawnParam.TargetActor = NULL;
+		
+		// Set Direction
+		if (CrosshairTrace(OutHit, CrosshairDirection, ECC_Visibility, 100000.f))
+		{
+			SpawnParam.InitialDirection = UKismetMathLibrary::GetDirectionUnitVector(SpawnParam.Transform.GetLocation(), OutHit.ImpactPoint);
+		}
+		else 
+		{
+			SpawnParam.InitialDirection = CrosshairDirection;
+		}
 	}
 	else SpawnParam.TargetActor = NULL;
 

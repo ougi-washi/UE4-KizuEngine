@@ -4,9 +4,11 @@
 
 #include "Engine/Engine.h"
 #include "GameFramework/Actor.h"
+#include "Combat/KizuCombat.h"
 #include "Engine/DataTable.h"
 #include "KItem.generated.h"
 
+class AKBuff;
 
 USTRUCT(BlueprintType)
 struct FKItemEffect {
@@ -15,6 +17,12 @@ struct FKItemEffect {
 	/** The resource name */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Item")
 	FString Name = "None";
+	/** The effect type */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Item")
+	TEnumAsByte<EResourceEffectType> ResourceEffectType = EResourceEffectType::Gain;
+	/** The buff/debuff to apply */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Item")
+	TSubclassOf<AKBuff> Buff;
 	/** The value to affect */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Item")
 	float Value = 100.f;

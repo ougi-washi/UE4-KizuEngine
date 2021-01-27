@@ -29,11 +29,14 @@ public:
 	/**
 	 * Spawns a Spawnable ability (Not replicated)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability")
 	static AKSpawnableAbility* SpawnSpawnableAbility(AActor* OwnerActor, TSubclassOf<AKSpawnableAbility> SpawnableAbilityToSpawn, FSpawnableAbilitySpawnParams SpawnParams);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
 	static bool IsSameFaction(AKCharacter* CharacterOne, AKCharacter* CharacterTwo);
+
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
 	static bool IsSameFactionWithCast(AKCharacter* CharacterOne, AActor* CharacterTwo);
+
+
 };

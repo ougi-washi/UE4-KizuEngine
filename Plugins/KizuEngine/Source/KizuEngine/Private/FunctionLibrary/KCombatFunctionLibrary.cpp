@@ -28,7 +28,6 @@ AKBuff* UKCombatFunctionLibrary::SpawnBuff(AActor* OwnerActor, AActor* TargetAct
 
 AKSpawnableAbility* UKCombatFunctionLibrary::SpawnSpawnableAbility(AActor* OwnerActor, TSubclassOf<AKSpawnableAbility> SpawnableAbilityToSpawn, FSpawnableAbilitySpawnParams SpawnParams)
 {
-	UE_LOG(LogKizu, Log, TEXT("In Function Library now"));
 	if (OwnerActor->IsValidLowLevel()) {
 		if (UWorld* World = OwnerActor->GetWorld()) {
 			AKSpawnableAbility* SpawnableAbility = World->SpawnActorDeferred<AKSpawnableAbility>(SpawnableAbilityToSpawn, SpawnParams.Transform, OwnerActor, Cast<APawn>(OwnerActor));
