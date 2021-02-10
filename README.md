@@ -13,7 +13,7 @@ It can be used for a huge variety of projects due to its flexibility.
 Status
 ------
 
-Version : v0.3.210113 (pre-release)
+Version : v0.3.210210 (pre-release)
 
 Supported engine version : 4.25*
 
