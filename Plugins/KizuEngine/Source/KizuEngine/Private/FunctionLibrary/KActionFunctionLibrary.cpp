@@ -131,27 +131,37 @@ bool UKActionFunctionLibrary::ExecuteActionFromDT(AKCharacter* KCharacter, UData
 
 bool UKActionFunctionLibrary::SendReaction(AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter, const FReactionSendingData &ReactionSendingData)
 {
-	if (ReactionSendingData.bSendReaction && OwnerCharacter && TargetCharacter) {
+	if (ReactionSendingData.bSendReaction && OwnerCharacter && TargetCharacter) 
+	{
 		static const FString ContextString(TEXT("ReactionDataTable"));
 
 		FReactionData* ReactionData = NULL;
-		if (ReactionSendingData.bUseCharacterReactionDataTable && OwnerCharacter->ReactionDataTable)
-			ReactionData = OwnerCharacter->ReactionDataTable->FindRow<FReactionData>(FName(ReactionSendingData.ReactionRowName), ContextString, true);
+		if (ReactionSendingData.bUseCharacterReactionDataTable && TargetCharacter->ReactionDataTable)
+		{
+			ReactionData = TargetCharacter->ReactionDataTable->FindRow<FReactionData>(FName(ReactionSendingData.ReactionRowName), ContextString, true);
+		}
 		else if (ReactionSendingData.ReactionDataTable)
+		{
 			ReactionData = ReactionSendingData.ReactionDataTable->FindRow<FReactionData>(FName(ReactionSendingData.ReactionRowName), ContextString, true);
-
-		if (ReactionData) {
-			if (ReactionSendingData.bSmoothReaction) {
+		}
+			
+		if (ReactionData) 
+		{
+			if (ReactionSendingData.bSmoothReaction) 
+			{
 				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_SkipSource); // Execute the reaction on everybody else besides the source (takes time as it depends on the bandwidth)
 				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_SourceOnly); // Execute the reaction for the source
 			}
-			else {
+			else 
+			{
 				OwnerCharacter->SendReaction_Replicated(*ReactionData, TargetCharacter, RR_All);
 			}
 			return true;
 		}
 		else
-			UE_LOG(LogTemp, Warning, TEXT("Unable to find row in order to send a reaction."));
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Unable to find row in order to send a reaction from [%s] to [%s]."), *OwnerCharacter->GetName(), *TargetCharacter->GetName());
+		}
 	}
 	return false;
 }

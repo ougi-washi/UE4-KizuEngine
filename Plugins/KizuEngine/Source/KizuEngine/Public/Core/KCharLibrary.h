@@ -43,9 +43,13 @@ public:
 	/** The custom Stat name (ID)*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = General)
 	FString Name = "None";
-	/** The custom Value name */
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = General)
-	float Value = 0.f;
+	float CurrentValue = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = General)
+	float BaseValue = 0.f;
+
 	/** Display Name for UI if needed */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Visual)
 	FText DisplayName;
@@ -105,6 +109,10 @@ public:
 	/** Faction to define either it's an enemy or an ally to another Faction */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
 	uint8 Faction = 0;
+
+	/** */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data")
+	int32 Level = 0;
 };
 
 USTRUCT(BlueprintType)

@@ -10,6 +10,7 @@
  * 
  */
 
+
 UENUM(BlueprintType)
 enum EResourceEffectType
 {
@@ -68,6 +69,14 @@ public:
 	/** To have a natural state, the value has to be 1. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay, Category = "Kizu|General")
 		float Value = .7f;
+};
+
+
+UENUM(BlueprintType)
+enum class EKBuffApplication : uint8
+{
+	BA_Self UMETA(DisplayName = "Self"),
+	BA_TargetCrosshair UMETA(DisplayName = "Target Crosshair"),
 };
 
 UCLASS()

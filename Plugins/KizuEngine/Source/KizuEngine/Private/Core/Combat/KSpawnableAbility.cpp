@@ -11,6 +11,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "FunctionLibrary/KActionFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
 
 // Sets default values
@@ -35,6 +36,7 @@ AKSpawnableAbility::AKSpawnableAbility()
 		ProjectileMovementComponent->bIsHomingProjectile = true;
 		ProjectileMovementComponent->HomingAccelerationMagnitude = ProjectileMovementComponent->MaxSpeed * 10;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
+		ProjectileMovementComponent->HomingTargetComponent = nullptr;
 	}
 }
 
@@ -54,6 +56,8 @@ void AKSpawnableAbility::BeginPlay()
 		if (SpawnableAbilityData.bTickEffects)
 			GetWorld()->GetTimerManager().SetTimer(TickingTimerHandle, this, &AKSpawnableAbility::TriggerTicking, SpawnableAbilityData.TickingRate, true);
 	}
+
+	UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityData.ParticleSystemOnSpawn, GetActorLocation(), GetActorRotation(), SpawnableAbilityData.ScaleParticleOnSpawn, true);
 }
 
 // Called every frame
@@ -68,23 +72,27 @@ void AKSpawnableAbility::TriggerTicking()
 	ExecuteSpawnableAbilityEffects(GetAllOnHitEffects());
 }
 
-
 void AKSpawnableAbility::InitializeMovement(const FVector InitialDirection, AActor* TargetActor)
 {
 	// Initialize the velocity
 	ProjectileMovementComponent->Velocity = InitialDirection * ProjectileMovementComponent->InitialSpeed;
 	// Check if homing and the target is available
-	if (ProjectileMovementComponent->bIsHomingProjectile && TargetActor) {
-		// look for a component in the center of the actor to travel towards it. The component should have "Center" as tag.
-		TArray<UActorComponent*> TargetActorComponents = TargetActor->GetComponentsByTag(UActorComponent::StaticClass(), "Center");
-		UActorComponent* TargetCenterActorComp;
-		// Set the homing target component as the center component if found, else just pick the root component.
-		if (TargetActorComponents.IsValidIndex(0)) {
-			TargetCenterActorComp = TargetActorComponents[0];
-			if (USceneComponent* TargetCenterSceneComp = Cast<USceneComponent>(TargetCenterActorComp))
-				ProjectileMovementComponent->HomingTargetComponent = TargetCenterSceneComp;
+	if (ProjectileMovementComponent->bIsHomingProjectile && TargetActor) 
+	{
+		if (CanHomeToTarget(TargetActor))
+		{
+			// look for a component in the center of the actor to travel towards it. The component should have "Center" as tag.
+			TArray<UActorComponent*> TargetActorComponents = TargetActor->GetComponentsByTag(UActorComponent::StaticClass(), "Center");
+			UActorComponent* TargetCenterActorComp;
+			// Set the homing target component as the center component if found, else just pick the root component.
+			if (TargetActorComponents.IsValidIndex(0))
+			{
+				TargetCenterActorComp = TargetActorComponents[0];
+				if (USceneComponent* TargetCenterSceneComp = Cast<USceneComponent>(TargetCenterActorComp))
+					ProjectileMovementComponent->HomingTargetComponent = TargetCenterSceneComp;
+			}
+			else ProjectileMovementComponent->HomingTargetComponent = TargetActor->GetRootComponent();
 		}
-		else ProjectileMovementComponent->HomingTargetComponent = TargetActor->GetRootComponent();
 	}
 }
 
@@ -152,6 +160,29 @@ void AKSpawnableAbility::OnCollisionBeginOverlap_Native(UPrimitiveComponent* Ove
 	OnCollisionBeginOverlap(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 }
 
+
+bool AKSpawnableAbility::CanHomeToTarget(AActor* TargetActor)
+{
+	AKCharacter* OwnerCharacter = Cast<AKCharacter>(GetOwner());
+	if (AKCharacter* TargetCharacter = Cast<AKCharacter>(TargetActor))
+	{
+		bool bSameFaction = UKCombatFunctionLibrary::IsSameFaction(OwnerCharacter, TargetCharacter);
+
+		if (SpawnableAbilityData.Effects.IsValidIndex(0))
+		{
+			if (SpawnableAbilityData.Effects[0].bAffectOtherFaction && !bSameFaction)
+			{
+				return true;
+			}
+			else if (SpawnableAbilityData.Effects[0].bAffectOwnerFaction && bSameFaction)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbilityEffect &SpawnableAbilityEffect, UPrimitiveComponent* inCollisionComponent)
 {
 	TArray<AActor*> OverlappingActors;
@@ -211,9 +242,19 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectOnCharacter(FSpawnableAbil
 		}
 	}
 
+	// Send reaction to the affected character
 	UKActionFunctionLibrary::SendReaction(OwnerCharacter, TargetCharacter, SpawnableAbilityEffect.ReactionSendingData);
 	
+	// Applying a buff to the affected character
 	ExecuteBuffsOnCharacter(SpawnableAbilityEffect.Buffs, OwnerCharacter, TargetCharacter);
+	
+	// Spawning a particle on effect application
+	if(SpawnableAbilityEffect.bSpawnEmitterOnApply)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityEffect.ParticleSystem, GetActorLocation(), GetActorRotation(), true);
+	}
+
+	// Add to the affected actors
 	AffectedActors.AddUnique(TargetCharacter);
 }
 
@@ -271,5 +312,24 @@ void AKSpawnableAbility::TriggerDestroytimer(const float DestroyTimer)
 	// Destroy(true); // Using Destroy will not wait for the projectile effects to function properly, for that we hide it and give it a second until everything has properly functioned for all the clients in the ApplyProjectileEffects
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
+	OnStartDestruction_Native();
 	SetLifeSpan(UKismetMathLibrary::Abs(DestroyTimer)); // 2 seconds on default, it can vary depending on how much of a net latency is at the client however a game with 2000ms is not really playable.
+}
+
+void AKSpawnableAbility::OnStartDestruction_Native()
+{
+	if (SpawnableAbilityData.bSpawnEmitterOnDestroy)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityData.ParticleSystemOnDestroy, GetActorLocation(), GetActorRotation(), SpawnableAbilityData.ScaleParticleOnDestroy, true);
+	}
+}
+
+void AKSpawnableAbility::ServerSpawnEmitter_Implementation(UParticleSystem* EmitterTemplate)
+{
+	MulticastSpawnEmitter_Implementation(EmitterTemplate);
+}
+
+void AKSpawnableAbility::MulticastSpawnEmitter_Implementation(UParticleSystem* EmitterTemplate)
+{
+	UGameplayStatics::SpawnEmitterAtLocation(this, EmitterTemplate, GetActorLocation(), GetActorRotation(), true);
 }

@@ -211,31 +211,53 @@ bool AKCharacter::GetStat(const FString StatName, FKStat& ResultStat)
 	return false;
 }
 
-bool AKCharacter::GetStatValue(const FString StatName, float& ResultValue)
+bool AKCharacter::GetStatCurrentValue(const FString StatName, float& ResultValue)
 {
 	FKStat Stat;
 	if (GetStat(StatName, Stat))
 	{
-		ResultValue = Stat.Value;
+		ResultValue = Stat.CurrentValue;
 		return true;
 	}
 	return false;
 }
 
-void AKCharacter::ServerSetStatValue_Implementation(const FString& StatName, const float inValue)
+bool AKCharacter::GetStatBaseValue(const FString StatName, float& ResultValue)
+{
+	FKStat Stat;
+	if (GetStat(StatName, Stat))
+	{
+		ResultValue = Stat.BaseValue;
+		return true;
+	}
+	return false;
+}
+
+void AKCharacter::ServerSetCurrentStatValue_Implementation(const FString& StatName, const float inValue)
 {
 	for (FKStat& Stat : CharacterData.Stats) {
-		if (Stat.Name == StatName) 
+		if (Stat.Name == StatName)
 		{
-			Stat.Value= inValue;
-			OnStatChange_Native(StatName, inValue);
+			Stat.CurrentValue = inValue;
+			OnStatChange_Native(Stat);
 		}
 	}
 }
 
-void AKCharacter::OnStatChange_Native(const FString& StatName, const float& Value)
+void AKCharacter::ServerSetBaseStatValue_Implementation(const FString& StatName, const float inValue)
 {
-	OnStatChange(StatName, Value);
+	for (FKStat& Stat : CharacterData.Stats) {
+		if (Stat.Name == StatName)
+		{
+			Stat.BaseValue = inValue;
+			OnStatChange_Native(Stat);
+		}
+	}
+}
+
+void AKCharacter::OnStatChange_Native(const FKStat& ChangedStat)
+{
+	OnStatChange(ChangedStat);
 }
 
 void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
@@ -343,8 +365,28 @@ void AKCharacter::InitAllRegens(const TArray<FKResourceRegeneration> &ResourcesR
 		}
 }
 
+void AKCharacter::ServerSetLevel_Implementation(const int32 NewLevel)
+{
+	CharacterData.Level = NewLevel;
+}
+
+int32 AKCharacter::GetLevel()
+{
+	return CharacterData.Level;
+}
+
 void AKCharacter::OnRep_CharacterData()
 {
+}
+
+void AKCharacter::Recalculate_Implementation(bool& bSuccess)
+{
+	// In here you implement the calculations
+}
+
+void AKCharacter::Recalculate_Native(bool& bSuccess)
+{
+	Recalculate(bSuccess);
 }
 
 void AKCharacter::OnCurrentHealthChange_Native()
@@ -392,7 +434,8 @@ void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransfor
 
 bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel /*= ECC_Pawn*/, const float Distance /*= 2000.f*/, const bool bDebug /*= false*/)
 {
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) {
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) 
+	{
 		// Get viewport size
 		int32 ViewportSizeX;
 		int32 ViewportSizeY;
@@ -402,6 +445,21 @@ bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const E
 		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, Direction);
 		// Calculate the end position where the cross-hair is pointing at by a given distance
 		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
+		if (bDebug)
+			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
+		if (UWorld* World = GetWorld()) {
+			FCollisionQueryParams CollisionParams;
+			CollisionParams.AddIgnoredActor(this);
+			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
+		}
+	}
+	else 
+	{
+		// This implementation is for the Ai
+
+		FVector CrosshairLocation_Start = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + BaseEyeHeight);
+		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
+		Direction = GetBaseAimRotation().Vector();
 		if (bDebug)
 			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
 		if (UWorld* World = GetWorld()) {
@@ -435,7 +493,11 @@ FVector AKCharacter::GetCrosshairDirection()
 			return ScreenDirection;
 		}
 	}
-	else return FVector::ZeroVector;
+	else 
+	{
+		// This implementation is for the Ai
+		return GetBaseAimRotation().Vector();
+	}
 }
 
 void AKCharacter::AddActorToTargetsArray(AActor* TargetActor)
@@ -784,6 +846,37 @@ void AKCharacter::SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbilit
 void AKCharacter::ServerSpawnSpawnableAbility_Implementation(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const FSpawnableAbilitySpawnParams &SpawnParams)
 {
 	UKCombatFunctionLibrary::SpawnSpawnableAbility(this, SpawnableAbilityClass, SpawnParams);
+}
+
+void AKCharacter::SpawnBuff(TSubclassOf<AKBuff> BuffClass, EKBuffApplication BuffApplication)
+{
+	if (BuffClass)
+	{
+		if (BuffApplication == EKBuffApplication::BA_Self)
+		{
+			ServerSpawnBuff_Implementation(BuffClass, this);
+		}
+		else if (BuffApplication == EKBuffApplication::BA_TargetCrosshair)
+		{
+			FHitResult OutHit;
+			FVector Direction;
+			if (CrosshairTrace(OutHit, Direction, ECC_Pawn, 3000))
+			{
+				if (AKCharacter* KCharacter = Cast<AKCharacter>(OutHit.GetActor()))
+				{
+					ServerSpawnBuff(BuffClass, KCharacter);
+				}
+			}
+		}
+	}
+}
+
+void AKCharacter::ServerSpawnBuff_Implementation(TSubclassOf<AKBuff> BuffClass, AActor* Target)
+{
+	if (Target && BuffClass)
+	{
+		UKCombatFunctionLibrary::SpawnBuff(this, Target, BuffClass, Target->GetActorTransform());
+	}
 }
 
 void AKCharacter::ServerAddItemToInventory_Implementation(const FKItemData& ItemToAdd, const int32 Amount)

@@ -166,6 +166,10 @@ public:
 	UFUNCTION()
 	void OnRep_CharacterData();
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kizu|Character|Data")
+	void Recalculate(bool &bSuccess);
+	virtual void Recalculate_Native(bool& bSuccess);
+
 	/** Response to Data being updated. Called on the server immediately after modification, and on clients in response to a RepNotify*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
 	void OnCurrentHealthChange();
@@ -292,17 +296,30 @@ public:
 	void OnHealthLoss(const float& Value);
 	virtual void OnHealthLoss_Native(const float& Value);
 
+
+	/**
+	 * Stats
+	 */
+
 	/** Returns the Stat struct with a given Name */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
 	bool GetStat(const FString StatName, FKStat& ResultStat);
 
-	/** Returns the Stat value  with a given Name */
+	/** Returns the Current Stat value  with a given Name */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
-	bool GetStatValue(const FString StatName, float &ResultValue);
+	bool GetStatCurrentValue(const FString StatName, float &ResultValue);
 
-	/** Sets the character stat value.*/
+	/** Returns the Base Stat value  with a given Name */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
+	bool GetStatBaseValue(const FString StatName, float& ResultValue);
+
+	/** Sets the character stat current value.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
-	void ServerSetStatValue(const FString& StatName, const float inValue);
+	void ServerSetCurrentStatValue(const FString& StatName, const float inValue);
+
+	/** Sets the character stat base value.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	void ServerSetBaseStatValue(const FString& StatName, const float inValue);
 
 	/**
 	* Event called when a stat value is changed
@@ -310,8 +327,9 @@ public:
 	* @param Value The new value 
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data|Stat")
-		void OnStatChange(const FString& StatName, const float& Value);
-	virtual void OnStatChange_Native(const FString& StatName, const float& Value);
+	void OnStatChange(const FKStat& ChangedStat);
+	virtual void OnStatChange_Native(const FKStat& ChangedStat);
+
 
 	/**
 	 * Character Combat functionalities
@@ -353,8 +371,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	void InitAllRegens(const TArray<FKResourceRegeneration>& ResourcesRegen);
 
+	/** */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void ServerSetLevel(const int32 NewLevel);
 
-
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	int32 GetLevel();
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -567,6 +589,13 @@ public:
 	 */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Spawnable")
 	void ServerSpawnSpawnableAbility(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClassconst, const FSpawnableAbilitySpawnParams& SpawnParams);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	void SpawnBuff(TSubclassOf<AKBuff> BuffClass, EKBuffApplication BuffApplication);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	void ServerSpawnBuff(TSubclassOf<AKBuff> BuffClass, AActor* Target);
+
 
 	/**
 	 * Inventory
