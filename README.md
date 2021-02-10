@@ -33,6 +33,7 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
   - Gain
   - Loss
   - Regeneration
+- Stats
 - Actions (Combo and state dependant)
 - Reactions (State and relative source position dependant)
 - Cooldowns
@@ -51,6 +52,8 @@ Most of the functionalities of Kizu Engine are exposed to the unreal engine blue
   - Spawnable Ability spawning
 - Ai Tasks :
   - Executing Actions
+- Ai Services :
+  - Updating Blackboard State
 - Getters for most of the systems via Custom Arrays or Data Tables
 
 Setting Up The Plugin
