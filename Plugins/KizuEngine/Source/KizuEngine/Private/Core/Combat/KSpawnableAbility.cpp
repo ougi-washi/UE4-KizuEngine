@@ -13,6 +13,7 @@
 #include "FunctionLibrary/KActionFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 AKSpawnableAbility::AKSpawnableAbility()
@@ -33,7 +34,7 @@ AKSpawnableAbility::AKSpawnableAbility()
 		ProjectileMovementComponent->InitialSpeed = 1000.f;
 		ProjectileMovementComponent->MaxSpeed = 1200.f;
 		ProjectileMovementComponent->ProjectileGravityScale = 0.f;
-		ProjectileMovementComponent->bIsHomingProjectile = true;
+		ProjectileMovementComponent->bIsHomingProjectile = false;
 		ProjectileMovementComponent->HomingAccelerationMagnitude = ProjectileMovementComponent->MaxSpeed * 10;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
 		ProjectileMovementComponent->HomingTargetComponent = nullptr;
@@ -51,13 +52,31 @@ void AKSpawnableAbility::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void AKSpawnableAbility::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority()) {
+	if (HasAuthority())
+	{
 		ExecuteSpawnableAbilityEffects(GetAllOnSpawnEffects());
 		if (SpawnableAbilityData.bTickEffects)
 			GetWorld()->GetTimerManager().SetTimer(TickingTimerHandle, this, &AKSpawnableAbility::TriggerTicking, SpawnableAbilityData.TickingRate, true);
 	}
 
-	UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityData.ParticleSystemOnSpawn, GetActorLocation(), GetActorRotation(), SpawnableAbilityData.ScaleParticleOnSpawn, true);
+	if (SpawnableAbilityData.ParticleSystemOnSpawn)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityData.ParticleSystemOnSpawn, GetActorLocation(), GetActorRotation(), SpawnableAbilityData.ScaleParticleOnSpawn, true);
+	}
+
+	if (SpawnableAbilityData.bSnapToGround)
+	{
+		SnapToGround();
+	}
+
+	if (SpawnableAbilityData.bAttachToOwner)
+	{
+		// Try attaching to the owner character mesh, if it fails attach to the owner's root component.
+		if (!AttachToOwnerCharacterMesh(SpawnableAbilityData.AttachSocketName))
+		{
+			AttachToOwner();
+		}
+	}
 }
 
 // Called every frame
@@ -89,9 +108,14 @@ void AKSpawnableAbility::InitializeMovement(const FVector InitialDirection, AAct
 			{
 				TargetCenterActorComp = TargetActorComponents[0];
 				if (USceneComponent* TargetCenterSceneComp = Cast<USceneComponent>(TargetCenterActorComp))
+				{
 					ProjectileMovementComponent->HomingTargetComponent = TargetCenterSceneComp;
+				}
 			}
-			else ProjectileMovementComponent->HomingTargetComponent = TargetActor->GetRootComponent();
+			else 
+			{
+				ProjectileMovementComponent->HomingTargetComponent = TargetActor->GetRootComponent();
+			}
 		}
 	}
 }
@@ -117,7 +141,9 @@ TArray<FSpawnableAbilityEffect> AKSpawnableAbility::GetAllOnSpawnEffects()
 	for (FSpawnableAbilityEffect SpawnableAbilityEffect : SpawnableAbilityData.Effects)
 	{
 		if (SpawnableAbilityEffect.SpawnableAbilityTriggerType == ESpawnableAbilityTriggerType::OnSpawn)
+		{
 			ResultEffects.Add(SpawnableAbilityEffect);
+		}
 	}
 	return ResultEffects;
 }
@@ -143,8 +169,10 @@ bool AKSpawnableAbility::GetOverlappingActorsByTag(TArray<AActor*> &OverlappingA
 			PrimitiveComponent->GetOverlappingActors(TempActors);
 			for (AActor* TempActor : TempActors)
 			{
-				if (TempActor!=this)
+				if (TempActor != this)
+				{
 					OverlappingActors.AddUnique(TempActor);
+				}
 			}
 		}
 
@@ -156,10 +184,16 @@ bool AKSpawnableAbility::GetOverlappingActorsByTag(TArray<AActor*> &OverlappingA
 void AKSpawnableAbility::OnCollisionBeginOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (HasAuthority())
-		ExecuteSpawnableAbilityEffects(GetAllOnHitEffects());
+	{
+		ExecuteSpawnableAbilityEffects(GetAllOnHitEffects());	
+	}
 	OnCollisionBeginOverlap(OverlappedComp, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 }
 
+void AKSpawnableAbility::Multicast_SetActorEnableCollision_Implementation(bool bNewValue)
+{
+	SetActorEnableCollision(bNewValue);
+}
 
 bool AKSpawnableAbility::CanHomeToTarget(AActor* TargetActor)
 {
@@ -183,6 +217,74 @@ bool AKSpawnableAbility::CanHomeToTarget(AActor* TargetActor)
 	return false;
 }
 
+void AKSpawnableAbility::SnapToGround()
+{
+	FHitResult Outhit;
+	FCollisionQueryParams Params;
+	FCollisionResponseParams CollisionResponseParam;
+	Params.AddIgnoredActor(this);
+
+	if (UWorld* World = GetWorld())
+	{
+		if (World->LineTraceSingleByChannel(Outhit,
+			GetActorLocation(), FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z - 500),
+			ECollisionChannel::ECC_Visibility, Params, CollisionResponseParam))
+		{
+			SetActorLocation(Outhit.ImpactPoint);
+		}
+	}
+}
+
+bool AKSpawnableAbility::AttachToOwnerCharacterMesh(const FName SocketName)
+{
+	if (AKCharacter* KCharacter = Cast<AKCharacter> (GetOwner()))
+	{
+		if (KCharacter->GetMesh())
+		{
+			AttachToComponent(KCharacter->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, SocketName);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AKSpawnableAbility::AttachToOwner()
+{
+	if (GetOwner())
+	{
+		AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		return true;
+	}
+	return false;
+}
+
+
+float AKSpawnableAbility::GetEffectValue(FSpawnableAbilityEffect& SpawnableAbilityEffect)
+{
+	if (SpawnableAbilityEffect.EffectValueType == ESpawnableAbilityDamageValueType::SADV_Static)
+	{
+		return SpawnableAbilityEffect.Value;
+	}
+	else if (SpawnableAbilityEffect.EffectValueType == ESpawnableAbilityDamageValueType::SADV_DynamicOnSource)
+	{
+		if (AKCharacter* KCharacter = Cast<AKCharacter>(GetOwner()))
+		{
+			float ResultValue;
+			if (KCharacter->GetResourceCurrentValue(SpawnableAbilityEffect.SourceResourceName, ResultValue))
+			{
+				ResultValue = (ResultValue * SpawnableAbilityEffect.Value) / 100;
+				float MinValue;
+				float MaxValue;
+				UKCombatFunctionLibrary::GetVariance(MinValue, MaxValue, ResultValue);
+				ResultValue = UKismetMathLibrary::RandomIntegerInRange(MinValue, MaxValue);
+				return ResultValue;
+			}
+		}
+	}
+	UE_LOG(LogKizu, Warning, TEXT("Issue occured when calculation the effect value of %s"), *GetName());
+	return 0.f;
+}
+
 void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbilityEffect &SpawnableAbilityEffect, UPrimitiveComponent* inCollisionComponent)
 {
 	TArray<AActor*> OverlappingActors;
@@ -190,7 +292,8 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbil
 	for (AActor* TempActor : OverlappingActors)
 	{
 		// Check if the SpawnableAbility is supposed to affect the overlapping actor only once. (This actor will be skipped in case it's not supposed to be affected again by this same effect)
-		if (AffectedActors.Find(TempActor) > -1 && SpawnableAbilityData.bAffectOnce) {
+		if (AffectedActors.Find(TempActor) > -1 && SpawnableAbilityData.bAffectOnce) 
+		{
 			// Can't be affected
 		}
 		else {
@@ -201,11 +304,13 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbil
 			if (!OtherCharacter || !OwnerCharacter)
 				return;
 
-			if (SpawnableAbilityEffect.bAffectOwner && OtherCharacter == OwnerCharacter) {
+			if (SpawnableAbilityEffect.bAffectOwner && OtherCharacter == OwnerCharacter) 
+			{
 				ExecuteSpawnableAbilityEffectOnCharacter(SpawnableAbilityEffect, OwnerCharacter, OtherCharacter);
 				bHasHit = true;
 			}
-			if (SpawnableAbilityEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) {
+			if (SpawnableAbilityEffect.bAffectOtherFaction && OtherCharacter->CharacterData.Faction != OwnerCharacter->CharacterData.Faction) 
+			{
 				ExecuteSpawnableAbilityEffectOnCharacter(SpawnableAbilityEffect, OwnerCharacter, OtherCharacter);
 				bHasHit = true;
 			}
@@ -221,24 +326,31 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbil
 
 void AKSpawnableAbility::ExecuteSpawnableAbilityEffectOnCharacter(FSpawnableAbilityEffect &SpawnableAbilityEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter)
 {
-	if (SpawnableAbilityEffect.ResourceEffectType == EResourceEffectType::Consumption) {
-		if (SpawnableAbilityEffect.bHealthResource) {
-			OwnerCharacter->ServerApplyDamage(TargetCharacter, SpawnableAbilityEffect.Value, NULL);
-			UE_LOG(LogKizu, Log, TEXT("<%s> damages <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, SpawnableAbilityEffect.Value, *SpawnableAbilityData.Name);
+	float EffectValue  = GetEffectValue(SpawnableAbilityEffect);
+	if (SpawnableAbilityEffect.ResourceEffectType == EResourceEffectType::Consumption) 
+	{
+		if (SpawnableAbilityEffect.bHealthResource) 
+		{
+			OwnerCharacter->ServerApplyDamage(TargetCharacter, EffectValue, SpawnableAbilityEffect.DamageType);
+			UE_LOG(LogKizu, Log, TEXT("<%s> damages <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, EffectValue, *SpawnableAbilityData.Name);
 		}
-		else {
-			TargetCharacter->ConsumeResource(SpawnableAbilityEffect.ResourceName, SpawnableAbilityEffect.Value);
-			UE_LOG(LogKizu, Log, TEXT("<%s> drains <%s>'s <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpawnableAbilityEffect.ResourceName, SpawnableAbilityEffect.Value, *SpawnableAbilityData.Name);
+		else 
+		{
+			TargetCharacter->ConsumeResource(SpawnableAbilityEffect.ResourceName, EffectValue);
+			UE_LOG(LogKizu, Log, TEXT("<%s> drains <%s>'s <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpawnableAbilityEffect.ResourceName, EffectValue, *SpawnableAbilityData.Name);
 		}
 	}
-	if (SpawnableAbilityEffect.ResourceEffectType == EResourceEffectType::Gain) {
-		if (SpawnableAbilityEffect.bHealthResource) {
-			TargetCharacter->GainHealth(SpawnableAbilityEffect.Value);
-			UE_LOG(LogKizu, Log, TEXT("<%s> heals <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, SpawnableAbilityEffect.Value, *SpawnableAbilityData.Name);
+	if (SpawnableAbilityEffect.ResourceEffectType == EResourceEffectType::Gain) 
+	{
+		if (SpawnableAbilityEffect.bHealthResource) 
+		{
+			TargetCharacter->GainHealth(EffectValue);
+			UE_LOG(LogKizu, Log, TEXT("<%s> heals <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, EffectValue, *SpawnableAbilityData.Name);
 		}
-		else {
-			TargetCharacter->GainResource(SpawnableAbilityEffect.ResourceName, SpawnableAbilityEffect.Value);
-			UE_LOG(LogKizu, Log, TEXT("<%s> recovers <%s>'s <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpawnableAbilityEffect.ResourceName, SpawnableAbilityEffect.Value, *SpawnableAbilityData.Name);
+		else 
+		{
+			TargetCharacter->GainResource(SpawnableAbilityEffect.ResourceName, EffectValue);
+			UE_LOG(LogKizu, Log, TEXT("<%s> recovers <%s>'s <%s> by <%f> with SpawnableAbility <%s>"), *OwnerCharacter->CharacterData.Name, *TargetCharacter->CharacterData.Name, *SpawnableAbilityEffect.ResourceName, EffectValue, *SpawnableAbilityData.Name);
 		}
 	}
 
@@ -249,10 +361,12 @@ void AKSpawnableAbility::ExecuteSpawnableAbilityEffectOnCharacter(FSpawnableAbil
 	ExecuteBuffsOnCharacter(SpawnableAbilityEffect.Buffs, OwnerCharacter, TargetCharacter);
 	
 	// Spawning a particle on effect application
-	if(SpawnableAbilityEffect.bSpawnEmitterOnApply)
+	if( SpawnableAbilityEffect.bSpawnEmitterOnApply && SpawnableAbilityEffect.ParticleSystem)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityEffect.ParticleSystem, GetActorLocation(), GetActorRotation(), true);
+		MulticastSpawnEmitter(SpawnableAbilityEffect.ParticleSystem);
 	}
+
+	OnApplyEffectToCharacter_Native(TargetCharacter);
 
 	// Add to the affected actors
 	AffectedActors.AddUnique(TargetCharacter);
@@ -296,22 +410,24 @@ void AKSpawnableAbility::ExecuteBuffsOnCharacter(TArray<TSubclassOf<AKBuff>> Buf
 void AKSpawnableAbility::ServerResetAffectedActors_Implementation()
 {
 	if (HasAuthority())
+	{
 		AffectedActors.Empty();
+	}	
 }
 
 void AKSpawnableAbility::OnFinishExecuteSpawnableAbilityEffects_Native()
 {
 	if (SpawnableAbilityData.bDestroyOnHit && bHasHit) {
-		TriggerDestroytimer(SpawnableAbilityData.DestroyTimer);
+		TriggerDestroyTimer(SpawnableAbilityData.DestroyTimer);
 	}
 	OnFinishExecuteSpawnableAbilityEffects();
 }
 
-void AKSpawnableAbility::TriggerDestroytimer(const float DestroyTimer)
+void AKSpawnableAbility::TriggerDestroyTimer(const float DestroyTimer)
 {
 	// Destroy(true); // Using Destroy will not wait for the projectile effects to function properly, for that we hide it and give it a second until everything has properly functioned for all the clients in the ApplyProjectileEffects
 	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
+	Multicast_SetActorEnableCollision(false);
 	OnStartDestruction_Native();
 	SetLifeSpan(UKismetMathLibrary::Abs(DestroyTimer)); // 2 seconds on default, it can vary depending on how much of a net latency is at the client however a game with 2000ms is not really playable.
 }
@@ -320,8 +436,14 @@ void AKSpawnableAbility::OnStartDestruction_Native()
 {
 	if (SpawnableAbilityData.bSpawnEmitterOnDestroy)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, SpawnableAbilityData.ParticleSystemOnDestroy, GetActorLocation(), GetActorRotation(), SpawnableAbilityData.ScaleParticleOnDestroy, true);
+		MulticastSpawnEmitter_Implementation(SpawnableAbilityData.ParticleSystemOnDestroy);
 	}
+	OnStartDestruction();
+}
+
+void AKSpawnableAbility::OnApplyEffectToCharacter_Native(AKCharacter* TargetCharter)
+{
+	OnApplyEffectToCharacter(TargetCharter);
 }
 
 void AKSpawnableAbility::ServerSpawnEmitter_Implementation(UParticleSystem* EmitterTemplate)

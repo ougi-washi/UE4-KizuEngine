@@ -20,8 +20,10 @@ class KIZUENGINE_API AKSpawnableAbility : public AActor
 	GENERATED_BODY()
 	
 public:	
+
 	// Sets default values for this actor's properties
 	AKSpawnableAbility();
+
 	/** Property replication */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -92,11 +94,38 @@ public:
 	UFUNCTION()
 	virtual void OnCollisionBeginOverlap_Native(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
+	/**
+	 * Collision
+	 */
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Spawnable Ability|Collision")
 	void OnCollisionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Spawnable Ability|Collision")
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|Collision")
+	void Multicast_SetActorEnableCollision(bool bNewValue);
+
+	/**
+	 * Movement
+	 */
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Spawnable Ability|Movement")
 	bool CanHomeToTarget(AActor* TargetActor);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
+	void SnapToGround();
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
+	bool AttachToOwnerCharacterMesh(const FName SocketName = "None");
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Movement")
+	bool AttachToOwner();
+
+	/**
+	 * Execute Spawnable Ability
+	 */
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Effect")
+	float GetEffectValue(FSpawnableAbilityEffect& SpawnableAbilityEffect);
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Effect")
 	void ExecuteSpawnableAbilityEffectByCollision(FSpawnableAbilityEffect &SpawnableAbilityEffect, UPrimitiveComponent* inCollisionComponent);
@@ -123,16 +152,31 @@ public:
 	void OnFinishExecuteSpawnableAbilityEffects();
 	virtual void OnFinishExecuteSpawnableAbilityEffects_Native();
 
+	/**
+	 * Destruction
+	 */
+
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Spawnable Ability|Effect")
-	void TriggerDestroytimer(const float DestroyTimer = 2.f);
+	void TriggerDestroyTimer(const float DestroyTimer = 2.f);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Spawnable Ability|Effect")
 	void OnStartDestruction();
 	void OnStartDestruction_Native();
 
+	/**
+	 * Effect
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Spawnable Ability|Effect")
+	void OnApplyEffectToCharacter(AKCharacter* TargetCharter);
+	void OnApplyEffectToCharacter_Native(AKCharacter* TargetCharter);
+
+	/**
+	 * Emitters
+	 */
 	UFUNCTION(Server, Unreliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|Emitter")
 	void ServerSpawnEmitter(UParticleSystem* EmitterTemplate);
 
 	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Kizu|Spawnable Ability|Emitter")
 	void MulticastSpawnEmitter(UParticleSystem* EmitterTemplate);
+
 };

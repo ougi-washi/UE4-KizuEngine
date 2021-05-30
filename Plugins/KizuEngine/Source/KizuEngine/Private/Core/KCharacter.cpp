@@ -11,7 +11,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/DataTable.h"
+#include "Core/Combat/KBuff.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Core/Extra/KExperiencePerLevel.h"
 
 AKCharacter::AKCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -22,6 +24,34 @@ AKCharacter::AKCharacter(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	GetCharacterMovement()->SetIsReplicated(true);
 }
 
+// Called when the game starts or when spawned
+void AKCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	InitAllRegens(CharacterData.ResourcesRegen);
+}
+
+void AKCharacter::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	InitializeCharacterData();
+}
+
+// Called every frame
+void AKCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+// Called to bind functionality to input
+void AKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+}
+
 void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -30,15 +60,158 @@ void AKCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(AKCharacter, CharacterData);
 	//DOREPLIFETIME(AKCharacter, LastSpawnedActorRef);
 	DOREPLIFETIME(AKCharacter, Inventory);
+	DOREPLIFETIME(AKCharacter, LastHitByCharacter)
 	DOREPLIFETIME(AKCharacter, AchievedObjectiveRequirements);
+	DOREPLIFETIME(AKCharacter, StatusEffectsStack);
 	DOREPLIFETIME_CONDITION(AKCharacter, ActiveState, COND_SkipOwner);
 }
 
-// Called when the game starts or when spawned
-void AKCharacter::BeginPlay()
+void AKCharacter::Multicast_DisableInput_Implementation()
 {
-	Super::BeginPlay();
-	InitAllRegens(CharacterData.ResourcesRegen);
+
+}
+
+void AKCharacter::Respawn(const FVector NewLocation /*= FVector::ZeroVector*/, const FRotator NewRotation /*= FRotator(ForceInit)*/)
+{
+
+}
+
+void AKCharacter::OnRespawn_Native()
+{
+
+}
+
+bool AKCharacter::GetIsNetworked()
+{
+	return (!UKismetSystemLibrary::IsStandalone(this));
+}
+
+void AKCharacter::Server_InitializeCharacterData_Implementation()
+{
+	InitializeCharacterData();
+}
+
+void AKCharacter::InitializeCharacterData()
+{
+	/**
+	 * Resistances and Elemental Damages
+	 */
+	 CharacterData.InitElementalDamages();
+	 CharacterData.InitResistances();
+
+	/**
+	 * Stats
+	 */
+	 // Base values 
+	CharacterData.InitStats();
+	// Update Stats (Base from level)
+	CharacterData.UpdateStatFromLevels();
+	// Called when done with stats
+	OnFinishBaseStatCalculation_Native();
+
+	/**
+	 * Attributes
+	 */
+	 // Calculate and Update Attributes from the Stats / Items...
+	CharacterData.UpdateAllResources();
+	// Called when done with the attributes
+	OnFinishBaseAttributeCalculation_Native();
+
+	// Calling event
+	OnInitializeCharacterData_Native();
+}
+
+void AKCharacter::OnInitializeCharacterData_Native()
+{
+	OnInitializeCharacterData();
+}
+
+void AKCharacter::OnFinishBaseAttributeCalculation_Native()
+{
+	OnFinishBaseAttributeCalculation();
+}
+
+void AKCharacter::OnFinishBaseStatCalculation_Native()
+{
+	OnFinishBaseStatCalculation();
+}
+
+void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransform& Transform)
+{
+	UWorld* World = GetWorld();
+	if (World) {
+		FActorSpawnParameters ActorSpawnParams;
+		ActorSpawnParams.Owner = this;
+		World->SpawnActor<AActor>(Class, Transform, ActorSpawnParams);
+	}
+}
+
+bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel /*= ECC_Pawn*/, const float Distance /*= 2000.f*/, const bool bDebug /*= false*/)
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		// Get viewport size
+		int32 ViewportSizeX;
+		int32 ViewportSizeY;
+		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
+		FVector CrosshairLocation_Start;
+		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, Direction);
+		// Calculate the end position where the cross-hair is pointing at by a given distance
+		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
+		if (bDebug)
+			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
+		if (UWorld* World = GetWorld()) {
+			FCollisionQueryParams CollisionParams;
+			CollisionParams.AddIgnoredActor(this);
+			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
+		}
+	}
+	else
+	{
+		// This implementation is for the Ai
+
+		FVector CrosshairLocation_Start = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + BaseEyeHeight);
+		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
+		Direction = GetBaseAimRotation().Vector();
+		if (bDebug)
+			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
+		if (UWorld* World = GetWorld()) {
+			FCollisionQueryParams CollisionParams;
+			CollisionParams.AddIgnoredActor(this);
+			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
+		}
+	}
+	return false;
+}
+
+FVector AKCharacter::GetCrosshairDirection()
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) {
+		// Get viewport size
+		int32 ViewportSizeX;
+		int32 ViewportSizeY;
+		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
+		FVector CrosshairLocation_Start;
+		FVector ScreenDirection;
+		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, ScreenDirection);
+		FHitResult OutHit;
+		if (CrosshairTrace(OutHit, ScreenDirection, ECC_Visibility, 100000.f, true))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Has hit"));
+			return UKismetMathLibrary::GetDirectionUnitVector(CrosshairLocation_Start, OutHit.ImpactPoint);
+		}
+		else {
+			UE_LOG(LogTemp, Warning, TEXT("Did not hit"));
+			return ScreenDirection;
+		}
+	}
+	else
+	{
+		// This implementation is for the Ai
+		return GetBaseAimRotation().Vector();
+	}
 }
 
 void AKCharacter::ServerSetCharacterData_Implementation(const FKCharacterData& inCharacterData)
@@ -74,9 +247,20 @@ void AKCharacter::ServerSetMaxResource_Implementation(const FString& ResourceNam
 	}
 }
 
+void AKCharacter::UpdateAllResources_Implementation()
+{
+	CharacterData.UpdateAllResources();
+}
+
 void AKCharacter::ServerSetFaction_Implementation(const uint8 NewFaction)
 {
 	CharacterData.Faction = NewFaction;
+	OnChangeFaction_Native(NewFaction);
+}
+
+void AKCharacter::OnChangeFaction_Native(const uint8& NewFaction)
+{
+	OnChangeFaction(NewFaction);
 }
 
 bool AKCharacter::GainHealth(const float ValueToGain /*= 10*/)
@@ -137,17 +321,35 @@ bool AKCharacter::GetResourceCurrentValue(const FString ResourceName, float& Res
 	return false;
 }
 
+bool AKCharacter::GetResourceMaxValue(const FString ResourceName, float& ResultValue)
+{
+	FKResource Resource;
+	if (GetResource(ResourceName, Resource)) {
+		ResultValue = Resource.MaxValue;
+		return true;
+	}
+	else if (ResourceName == "DEFAULT_HEALTH") {
+		ResultValue = CharacterData.MaxHealth;
+		return true;
+	}
+	return false;
+}
+
 bool AKCharacter::GainResource(const FString ResourceName, const float ValueToGain)
 {
 	FKResource Resource;
-	if (ResourceName == "DEFAULT_HEALTH") {
+	if (ResourceName == "DEFAULT_HEALTH") 
+	{
 		return GainHealth(ValueToGain);
 	}
-	if (GetResource(ResourceName, Resource)) {
-
+	if (GetResource(ResourceName, Resource))
+	{
 		float FinalValue = Resource.CurrentValue + ValueToGain;
-		if (FinalValue > Resource.MaxValue)
+		if (FinalValue > Resource.MaxValue && Resource.bCanBeCapped)
+		{
 			FinalValue = Resource.MaxValue;
+		}
+
 		ServerSetCurrentResource(ResourceName, FinalValue);
 
 		OnResourceGain_Native(ResourceName, ValueToGain);
@@ -197,7 +399,6 @@ void AKCharacter::OnHealthLoss_Native(const float& Value)
 	OnHealthLoss(Value);
 }
 
-
 bool AKCharacter::GetStat(const FString StatName, FKStat& ResultStat)
 {
 	for (FKStat& Stat : CharacterData.Stats) 
@@ -240,6 +441,7 @@ void AKCharacter::ServerSetCurrentStatValue_Implementation(const FString& StatNa
 		{
 			Stat.CurrentValue = inValue;
 			OnStatChange_Native(Stat);
+			return;
 		}
 	}
 }
@@ -251,13 +453,133 @@ void AKCharacter::ServerSetBaseStatValue_Implementation(const FString& StatName,
 		{
 			Stat.BaseValue = inValue;
 			OnStatChange_Native(Stat);
+			return;
 		}
 	}
+}
+
+void AKCharacter::SeverGainStatPoints_Implementation(const int32 PointsToGain)
+{
+	CharacterData.UnspentStatPoints += PointsToGain;
+}
+
+int32 AKCharacter::GetUnspentStatPoints()
+{
+	return CharacterData.UnspentStatPoints;
+}
+
+void AKCharacter::ServerSetUnspentStatPoints_Implementation(const int32 NewUnspentStatPoints)
+{
+	CharacterData.UnspentStatPoints = NewUnspentStatPoints;	 
+}
+
+void AKCharacter::ServerSetStatLevelPoints_Implementation(const FString& StatName, const int32 NewLevelPoints)
+{
+	for (FKStatLevelPoint& StatLevelPoint : CharacterData.StatLevelPoints)
+	{
+		if (StatLevelPoint.StatName == StatName)
+		{
+			StatLevelPoint.LevelPoints = NewLevelPoints;
+		}
+	}
+}
+
+void AKCharacter::ServerAssignStatLevelPoint_Implementation(const FString& StatName)
+{
+	for (FKStat &Stat : CharacterData.Stats)
+	{
+		if (StatName == Stat.Name)
+		{
+			int32 NewValue = GetStatLevelPoints(StatName) + 1;
+			CharacterData.AddStatLevelPoints(StatName, 1);
+			CharacterData.UnspentStatPoints--;
+			OnAssignStatLevelPoints_Native(StatName, NewValue);
+			return;
+		}
+	}
+}
+
+bool AKCharacter::Replicated_AssignStatLevelPoint(const FString& StatName)
+{
+	if (CharacterData.UnspentStatPoints > 0)
+	{
+		ServerAssignStatLevelPoint(StatName);
+		return true;
+	}
+	return false;
+}
+
+int32 AKCharacter::GetStatLevelPoints(const FString& StatName)
+{
+	for (FKStatLevelPoint& StatLevelPoint : CharacterData.StatLevelPoints)
+	{
+		if (StatLevelPoint.StatName == StatName)
+		{
+			return StatLevelPoint.LevelPoints;
+		}
+	}
+	return -1;
+}
+
+void AKCharacter::OnAssignStatLevelPoints_Native(const FString& StatName, const int32 NewLevelPoints)
+{
+	InitializeCharacterData();
+	OnAssignStatLevelPoints(StatName, NewLevelPoints);
 }
 
 void AKCharacter::OnStatChange_Native(const FKStat& ChangedStat)
 {
 	OnStatChange(ChangedStat);
+}
+
+bool AKCharacter::GetResistanceValue(const FString ResistanceName, float& ResultValue)
+{
+	for (FKResistance &Resistance : CharacterData.Resistances)
+	{
+		if ( Resistance.Name == ResistanceName )
+		{
+			ResultValue = Resistance.Value;
+			return true;
+		}
+	}
+	ResultValue = 0.f;
+	return false;
+}
+
+void AKCharacter::Server_SetResistanceValue_Implementation(const FString& ResistanceName, const float InValue)
+{
+	for (FKResistance &Resistance : CharacterData.Resistances)
+	{
+		if (Resistance.Name == ResistanceName)
+		{
+			Resistance.Value = InValue;
+		}
+	}
+}
+
+bool AKCharacter::GetElementalDamageValue(const FString ElementalDamageName, float& ResultValue)
+{
+	for (FKElementalDamage &ElementalDamage : CharacterData.ElementalDamages)
+	{
+		if (ElementalDamage.Name == ElementalDamageName)
+		{
+			ResultValue = ElementalDamage.Value;
+			return true;
+		}
+	}
+	ResultValue = 0.f;
+	return false;
+}
+
+void AKCharacter::Server_SetElementalDamageValue_Implementation(const FString& ElementalDamageName, const float InValue)
+{
+	for (FKElementalDamage& ElementalDamage : CharacterData.ElementalDamages)
+	{
+		if (ElementalDamage.Name == ElementalDamageName)
+		{
+			ElementalDamage.Value = InValue;
+		}
+	}
 }
 
 void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
@@ -267,12 +589,18 @@ void AKCharacter::ApplyDamage_Replicated(AActor* Target, const float Damage, TSu
 
 void AKCharacter::ServerApplyDamage_Implementation(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
+	OnApplyDamage_Native(Target, Damage, DamageType);
 	UGameplayStatics::ApplyDamage(Target, Damage, GetController(), this, DamageType);
 }
 
 bool AKCharacter::ServerApplyDamage_Validate(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
 {
 	return (Damage >= 0);
+}
+
+void AKCharacter::OnApplyDamage_Native(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType)
+{
+	OnApplyDamage(Target, Damage, DamageType);
 }
 
 bool AKCharacter::HasEnoughHealth(const float Value /*= 50.f*/)
@@ -292,6 +620,11 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 {
 	Damage = onTakeDamageModifier(Damage, DamageEvent, EventInstigator, DamageCauser);
 
+	if (AKCharacter* HitByChar = Cast<AKCharacter>(EventInstigator->GetPawn()))
+	{
+		LastHitByCharacter = MakeWeakObjectPtr<AKCharacter>(HitByChar);
+	}
+	
 	if (CharacterData.CurrentHealth > 0) {
 
 		float FinalValue = CharacterData.CurrentHealth - Damage;
@@ -311,6 +644,11 @@ float AKCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, ACo
 float AKCharacter::onTakeDamageModifier_Implementation(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	return Damage;
+}
+
+AKCharacter* AKCharacter::GetLastHitByCharacter()
+{
+	return (LastHitByCharacter.IsValid()) ? LastHitByCharacter.Get() : nullptr;
 }
 
 bool AKCharacter::AddCustomDamage(const FCustomDamage& CustomDamage)
@@ -367,12 +705,76 @@ void AKCharacter::InitAllRegens(const TArray<FKResourceRegeneration> &ResourcesR
 
 void AKCharacter::ServerSetLevel_Implementation(const int32 NewLevel)
 {
-	CharacterData.Level = NewLevel;
+	CharacterData.ProgressionLevel = NewLevel;
 }
 
 int32 AKCharacter::GetLevel()
 {
-	return CharacterData.Level;
+	return CharacterData.ProgressionLevel;
+}
+
+void AKCharacter::LevelUp()
+{
+	int32 NewLevel  = CharacterData.ProgressionLevel + 1;
+	ServerSetLevel(NewLevel);
+	OnLevelUp_Native(NewLevel);
+}
+
+void AKCharacter::OnLevelUp_Native(const int32& NewLevel)
+{
+	// Gain 5 points on level up
+	SeverGainStatPoints(5);
+	OnLevelUp(NewLevel);
+}
+
+int32 AKCharacter::GetExperience()
+{
+	return CharacterData.ProgressionExperience;
+}
+
+void AKCharacter::ServerSetExperience_Implementation(const int32 NewExperience)
+{
+	CharacterData.ProgressionExperience = NewExperience;
+}
+
+void AKCharacter::GainExperience(const int32 ExperienceToGain)
+{
+	if (ExperiencePerLevel)
+	{
+		int32 TotalRequiredExperience = ExperiencePerLevel->GetExperience(CharacterData.ProgressionLevel);
+		int32 RequiredExperienceToLevelUp = TotalRequiredExperience - CharacterData.ProgressionExperience;
+		if (TotalRequiredExperience != -1)
+		{
+			int32 NewExperience = CharacterData.ProgressionExperience + ExperienceToGain;
+			if (NewExperience >= TotalRequiredExperience)
+			{
+				LevelUp();
+				ServerSetExperience(ExperienceToGain - RequiredExperienceToLevelUp);
+			}
+			else
+			{
+				ServerSetExperience(CharacterData.ProgressionExperience + ExperienceToGain);
+			}
+		}
+	}
+	OnGainExperience_Native(ExperienceToGain);
+}
+
+void AKCharacter::OnGainExperience_Native(const int32 GainedExperience)
+{
+	OnGainExperience(GainedExperience);
+}
+
+int AKCharacter::GetTotalRequiredExperience()
+{
+	return ExperiencePerLevel->GetExperience(CharacterData.ProgressionLevel);
+}
+
+float AKCharacter::GetExperiencePercentage()
+{
+	
+	float TotalRequiredExperience = GetTotalRequiredExperience();
+	return CharacterData.ProgressionExperience / TotalRequiredExperience;
 }
 
 void AKCharacter::OnRep_CharacterData()
@@ -400,104 +802,19 @@ void AKCharacter::ExecuteDeathEvent_Native()
 		MontagePlay_Replicated(DeathMontage);
 	if (bSetStateOnDeath && ActiveState != DeathState)
 		SetCurrentStateFast(DeathState);
-	ExecuteDeathEvent();
-}
 
-// Called every frame
-void AKCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-// Called to bind functionality to input
-void AKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
-
-bool AKCharacter::GetIsNetworked()
-{
-	return (!UKismetSystemLibrary::IsStandalone(this));
-}
-
-void AKCharacter::ServerSpawnActor_Implementation(UClass* Class, const FTransform& Transform)
-{
-	UWorld* World = GetWorld();
-	if (World) {
-		FActorSpawnParameters ActorSpawnParams;
-		ActorSpawnParams.Owner = this;
-		World->SpawnActor<AActor>(Class, Transform, ActorSpawnParams);
-	}
-}
-
-bool AKCharacter::CrosshairTrace(FHitResult& OutHit, FVector& Direction, const ECollisionChannel CollisionChannel /*= ECC_Pawn*/, const float Distance /*= 2000.f*/, const bool bDebug /*= false*/)
-{
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) 
+	if (LastHitByCharacter.IsValid())
 	{
-		// Get viewport size
-		int32 ViewportSizeX;
-		int32 ViewportSizeY;
-		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
-		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
-		FVector CrosshairLocation_Start;
-		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, Direction);
-		// Calculate the end position where the cross-hair is pointing at by a given distance
-		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
-		if (bDebug)
-			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
-		if (UWorld* World = GetWorld()) {
-			FCollisionQueryParams CollisionParams;
-			CollisionParams.AddIgnoredActor(this);
-			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
-		}
-	}
-	else 
-	{
-		// This implementation is for the Ai
-
-		FVector CrosshairLocation_Start = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + BaseEyeHeight);
-		FVector CrosshairLocation_End = ((GetBaseAimRotation().Vector() * Distance) + CrosshairLocation_Start);
-		Direction = GetBaseAimRotation().Vector();
-		if (bDebug)
-			DrawDebugLine(GetWorld(), CrosshairLocation_Start, CrosshairLocation_End, FColor::Red, false, 1, 0, 1);
-		if (UWorld* World = GetWorld()) {
-			FCollisionQueryParams CollisionParams;
-			CollisionParams.AddIgnoredActor(this);
-			return World->LineTraceSingleByChannel(OutHit, CrosshairLocation_Start, CrosshairLocation_End, CollisionChannel, CollisionParams);
-		}
-	}
-	return false;
-}
-
-FVector AKCharacter::GetCrosshairDirection()
-{
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController())) {
-		// Get viewport size
-		int32 ViewportSizeX;
-		int32 ViewportSizeY;
-		PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
-		// Get the position in the middle of the screen (Cross-hair position in the 3D scene)
-		FVector CrosshairLocation_Start;
-		FVector ScreenDirection;
-		PlayerController->DeprojectScreenPositionToWorld(ViewportSizeX / 2.f, ViewportSizeY / 2.f, CrosshairLocation_Start, ScreenDirection);
-		FHitResult OutHit;
-		if (CrosshairTrace(OutHit, ScreenDirection, ECC_Visibility, 100000.f, true))
+		if (LastHitByCharacter.Get()->ExperienceKillData.bCanGainExperience)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Has hit"));
-			return UKismetMathLibrary::GetDirectionUnitVector(CrosshairLocation_Start, OutHit.ImpactPoint);
-		}
-		else {
-			UE_LOG(LogTemp, Warning, TEXT("Did not hit"));
-			return ScreenDirection;
+			LastHitByCharacter.Get()->GainExperience(
+				ExperienceKillData.GetExperienceOnKill(
+					LastHitByCharacter.Get()->CharacterData.ProgressionLevel,
+					CharacterData.ProgressionLevel));
 		}
 	}
-	else 
-	{
-		// This implementation is for the Ai
-		return GetBaseAimRotation().Vector();
-	}
+	ExecuteDeathEvent();
+	
 }
 
 void AKCharacter::AddActorToTargetsArray(AActor* TargetActor)
@@ -650,6 +967,8 @@ bool AKCharacter::ExecuteAction(const FActionData& ActionData, const bool bUseCo
 					Cooldown = FCooldown(ActionData.Name, ActionData.Cooldown);
 					StartCooldown(Cooldown);
 				}
+
+				OnExecuteAction_Native(ActionData);
 				return true;
 			}
 		}
@@ -663,6 +982,11 @@ bool AKCharacter::AddCooldownToStack(const FCooldown& Cooldown)
 		return false;
 	CooldownStack.AddUnique(Cooldown);
 	return true;
+}
+
+void AKCharacter::OnExecuteAction_Native(const FActionData& ActionData)
+{
+	OnExecuteAction(ActionData);
 }
 
 bool AKCharacter::StartCooldown(FCooldown& Cooldown)
@@ -879,6 +1203,51 @@ void AKCharacter::ServerSpawnBuff_Implementation(TSubclassOf<AKBuff> BuffClass, 
 	}
 }
 
+
+void AKCharacter::Server_AddStatusEffect_Implementation(AKBuff* StatusEffectToAdd)
+{
+	if (StatusEffectToAdd)
+	{
+		StatusEffectsStack.AddUnique(StatusEffectToAdd);
+	}
+}
+
+void AKCharacter::RemoveStatusEffect_Implementation(AKBuff* StatusEffectToRemove)
+{
+	if (StatusEffectToRemove)
+	{
+		StatusEffectsStack.RemoveSingle(StatusEffectToRemove);
+	}
+}
+
+void AKCharacter::Server_RemoveStatusEffect_Implementation(AKBuff* StatusEffectToRemove)
+{
+	RemoveStatusEffect(StatusEffectToRemove);
+}
+
+void AKCharacter::Server_RemoveAllStatusEffectsByClass_Implementation(TSubclassOf<AKBuff> StatusEffectClass)
+{
+	for (AKBuff* StatusEffect : StatusEffectsStack)
+	{
+		if (StatusEffectClass->IsChildOf(StatusEffectClass))
+		{
+			StatusEffect->TriggerDurationEnd();
+		}
+	}
+}
+
+bool AKCharacter::DoesStatusEffectExist(TSubclassOf<AKBuff> StatusEffectClass)
+{
+	for (AKBuff* StatusEffect : StatusEffectsStack)
+	{
+		if (StatusEffectClass->IsChildOf(StatusEffectClass))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void AKCharacter::ServerAddItemToInventory_Implementation(const FKItemData& ItemToAdd, const int32 Amount)
 {
 	UE_LOG(LogKizu, Log, TEXT("Adding %d [%s] to [%s]'s inventory."), Amount, *ItemToAdd.Name, *CharacterData.Name);
@@ -895,7 +1264,6 @@ bool AKCharacter::ServerRemoveItemFromInventory_Validate(const FKItemData& ItemT
 {
 	return (Inventory.GetItemCount(ItemToAdd) >= Amount);
 }
-
 
 void AKCharacter::SetCurrentStateFast(const FString& NewState)
 {

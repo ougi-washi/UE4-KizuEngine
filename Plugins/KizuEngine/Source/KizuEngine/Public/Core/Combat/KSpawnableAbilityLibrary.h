@@ -10,6 +10,7 @@
 
 class AKBuff;
 class UParticleSystem;
+class UDamageType;
 
 UENUM(BlueprintType)
 enum ESpawnableAbilityTriggerType
@@ -18,12 +19,22 @@ enum ESpawnableAbilityTriggerType
 	OnHit
 };
 
+UENUM(BlueprintType)
+enum class ESpawnableAbilityDamageValueType : uint8
+{
+	SADV_Static UMETA(DisplayName = "Static"),
+	SADV_DynamicOnSource UMETA(DisplayName = "Dynamic On Source")
+};
+
 USTRUCT(BlueprintType)
 struct FSpawnableAbilityEffect
 {
 	GENERATED_BODY()
 
 public:
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
+	FString Type = "Neutral";
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
 	TEnumAsByte<ESpawnableAbilityTriggerType> SpawnableAbilityTriggerType = ESpawnableAbilityTriggerType::OnHit;
@@ -37,8 +48,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "!bHealthResource"), Category = Effect)
 	FString ResourceName = "None";
 
+	/** If the amount of damage or effect to apply is static or dynamic on a specific resource*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
+	ESpawnableAbilityDamageValueType EffectValueType = ESpawnableAbilityDamageValueType::SADV_Static;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect, meta = (EditCondition = "EffectValueType != ESpawnableAbilityDamageValueType::SADV_Static"))
+	FString SourceResourceName = "None";
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
 	float Value = 10.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
+	TSubclassOf<UDamageType> DamageType = nullptr;
 
 	/** The effects that are going to be executed on the trigger event of the SpawnableAbility.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
@@ -117,7 +138,20 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Emitter", meta = (EditCondition = "bSpawnEmitterOnSpawn"))
 	FVector ScaleParticleOnSpawn = FVector(1.f, 1.f, 1.f);
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Collision")
+	uint8 bAffectOnlySkeletalMesh : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Collision")
+	uint8 bSnapToGround : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Movement)
+	uint8 bAttachToOwner : 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Movement)
+	FName AttachSocketName = "None";
+
 	FSpawnableAbilityData() {
 		bDestroyOnHit = true;
+		bAffectOnlySkeletalMesh = true;
 	}
 };

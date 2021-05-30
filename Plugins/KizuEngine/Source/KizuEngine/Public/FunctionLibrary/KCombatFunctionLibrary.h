@@ -13,6 +13,8 @@
 class AKBuff;
 class AKSpawnableAbility;
 class AKCharacter;
+class AKRespawnTargetPoint;
+class UDamageType;
 
 UCLASS()
 class KIZUENGINE_API UKCombatFunctionLibrary : public UBlueprintFunctionLibrary
@@ -38,5 +40,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff")
 	static bool IsSameFactionWithCast(AKCharacter* CharacterOne, AActor* CharacterTwo);
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Respawn")
+	static AKRespawnTargetPoint* GetClosestRespawnTargetPoint(AKCharacter* Character, const FString PlayerID = "DEFAULT");
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Respawn")
+	static bool GetClosestRespawnTargetPointLocRot(FVector &OutLocation, FRotator &OutRotation, AKCharacter* Character, const FString PlayerID = FString("DEFAULT"), const FVector LocationOffset = FVector(0.f, 0.f, 80.f));
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Respawn")
+	static TSubclassOf<UDamageType> GetDamageType(UPARAM(ref)FDamageEvent &DamageEvent);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Damage")
+	static void GetVariance(float& OutMin, float& OutMax, const float InValue = 200.f, const float InVariancePercentage = 5.f);
 };

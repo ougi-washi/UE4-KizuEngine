@@ -14,7 +14,7 @@
 class AKBuff;
 class AKSpawnableAbility;
 class UDataTable;
- 
+class UKExperiencePerLevel;
 
 UCLASS()
 class KIZUENGINE_API AKCharacter : public ACharacter
@@ -38,6 +38,12 @@ public:
 	/** The character's Data, containing all kind of general stats that vary during the Gameplay.*/
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, ReplicatedUsing = OnRep_CharacterData, Category = "Kizu|Character|Data")
 	FKCharacterData CharacterData;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Experience")
+	FKExperienceKillData ExperienceKillData;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Experience")
+	UKExperiencePerLevel* ExperiencePerLevel = nullptr;
 
 	/** If the character plays the death montage on death */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Character|Data|Death")
@@ -85,9 +91,11 @@ public:
 
 	/** This is a temp variable used for the Combo Systems, this is shared for now among all the combos (a queue has to be created later on). */
 	int32 ComboCounter = 0;
+
 	/* The array of the targets to interact with, damage or such. TODO : change to TSharedPointer */
 	UPROPERTY(BlueprintReadWrite)
 	TArray<AActor*> TargetsArray;
+
 	// Temp pointer to the last spawned Actor. TODO : change to TSharedPointer
 	//UPROPERTY(Replicated)
 	//AActor* LastSpawnedActorRef;
@@ -100,6 +108,8 @@ public:
 	// Sets default values for this character's properties
 	AKCharacter(const FObjectInitializer& ObjectInitializer);
 
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -109,9 +119,21 @@ public:
 	/** Property replication */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	
 	/**
 	 * General functionalities
 	 */
+
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category = "EXWorld|Character|General")
+	void Multicast_DisableInput();
+
+	UFUNCTION(BlueprintCallable, Category = "EXWorld|Character|General")
+	void Respawn(const FVector NewLocation = FVector::ZeroVector, const FRotator NewRotation = FRotator(ForceInit));
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "EXWorld|Character|General")
+	void OnRespawn();
+	virtual void OnRespawn_Native();
 
 	 /**
 	  * Returns Checks if the player is networked
@@ -119,6 +141,28 @@ public:
 	  */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|General|Network")
 	bool GetIsNetworked();
+
+	/**
+	 * Character initialization
+	 */
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|General")
+	void Server_InitializeCharacterData();
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|General")
+	void InitializeCharacterData();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General")
+	void OnInitializeCharacterData();
+	virtual void OnInitializeCharacterData_Native();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General")
+	void OnFinishBaseAttributeCalculation();
+	virtual void OnFinishBaseAttributeCalculation_Native();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|General")
+	void OnFinishBaseStatCalculation();
+	virtual void OnFinishBaseStatCalculation_Native();
 
 	/*
 	* Replicated Actor Spawn
@@ -200,9 +244,17 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetMaxResource(const FString& ResourceName, const float inValue);
 
+	/** Update all the character resources.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+	void UpdateAllResources();
+
 	/** Sets the character Faction.*/
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
 	void ServerSetFaction(const uint8 NewFaction);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data")
+	void OnChangeFaction(const uint8& NewFaction);
+	virtual void OnChangeFaction_Native(const uint8 &NewFaction);
 
 	/**
 	* Gain health on the server by checking the possible maximum.
@@ -214,6 +266,9 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kizu|Character|Data")
 	float onTakeDamageModifier(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	AKCharacter* GetLastHitByCharacter();
 
 	/**
 	* Get the health max and current values from the character data
@@ -244,6 +299,9 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
 	bool GetResourceCurrentValue(const FString ResourceName, float& ResultValue);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	bool GetResourceMaxValue(const FString ResourceName, float& ResultValue);
 
 	/**
 	* Gain resource on the server by checking the possible maximum.
@@ -296,7 +354,6 @@ public:
 	void OnHealthLoss(const float& Value);
 	virtual void OnHealthLoss_Native(const float& Value);
 
-
 	/**
 	 * Stats
 	 */
@@ -321,6 +378,36 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
 	void ServerSetBaseStatValue(const FString& StatName, const float inValue);
 
+	/** Gaining Stat points that will be added to the UnspentStatPoints*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	void SeverGainStatPoints(const int32 PointsToGain = 5);
+
+	/** Gaining Stat points that will be added to the UnspentStatPoints*/
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
+	int32 GetUnspentStatPoints();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	void ServerSetUnspentStatPoints(const int32 NewLevelPoints);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	void ServerSetStatLevelPoints(const FString& StatName, const int32 NewLevelPoints);
+
+	/** Assing a stat level point (Do not call this) */
+	UFUNCTION(Server, Reliable)
+	void ServerAssignStatLevelPoint(const FString& StatName);
+
+	/** Assigns a stat level point.*/
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Data|Stat")
+	bool Replicated_AssignStatLevelPoint(const FString& StatName);
+
+	/** Get stat level point for a given, if not found, returns -1.*/
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Stat")
+	int32 GetStatLevelPoints(const FString& StatName);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data|Stat")
+	void OnAssignStatLevelPoints(const FString &StatName, const int32 NewLevelPoints);
+	virtual void OnAssignStatLevelPoints_Native(const FString& StatName, const int32 NewLevelPoints);
+
 	/**
 	* Event called when a stat value is changed
 	* @param ResourceName The Stat name
@@ -329,6 +416,30 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Data|Stat")
 	void OnStatChange(const FKStat& ChangedStat);
 	virtual void OnStatChange_Native(const FKStat& ChangedStat);
+
+	/**
+	 * Resistances
+	 */
+
+	 /** Returns the resistance value with a given Name */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Resistance")
+	bool GetResistanceValue(const FString ResistanceName, float& ResultValue);
+
+	/** Sets the resistance on the character.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Resistance")
+	void Server_SetResistanceValue(const FString& ResistanceName, const float InValue);
+
+	/**
+	 * Elemental Damages
+	 */
+
+	 /** Returns the elemental damage value with a given Name */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data|Resistance")
+	bool GetElementalDamageValue(const FString ElementalDamageName, float& ResultValue);
+
+	/** Sets the elemental damage on the character.*/
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data|Resistance")
+	void Server_SetElementalDamageValue(const FString& ElementalDamageName, const float InValue);
 
 
 	/**
@@ -342,6 +453,11 @@ public:
 	/** Apply damage to an Actor server side (replicated).*/
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Kizu|Character|Combat")
 	void ServerApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
+
+	/** Event called on apply damage. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Combat")
+	void OnApplyDamage(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
+	virtual void OnApplyDamage_Native(AActor* Target, const float Damage, TSubclassOf<UDamageType> DamageType);
 
 	/** Checks if the character has enough health. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
@@ -371,12 +487,44 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Combat")
 	void InitAllRegens(const TArray<FKResourceRegeneration>& ResourcesRegen);
 
-	/** */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Data")
+
+	/**
+	 * Levels
+	 */
+
+	/** Set progression level */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Level")
 	void ServerSetLevel(const int32 NewLevel);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Data")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Level")
 	int32 GetLevel();
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Level")
+	void LevelUp();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Level")
+	void OnLevelUp(const int32 &NewLevel);
+	virtual void OnLevelUp_Native(const int32& NewLevel);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Level")
+	int32 GetExperience();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Level")
+	void ServerSetExperience(const int32 NewExperience);
+
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Level")
+	void GainExperience(const int32 ExperienceToGain);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Level")
+	void OnGainExperience(const int32 GainedExperience);
+	void OnGainExperience_Native(const int32 GainedExperience);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Level")
+	int GetTotalRequiredExperience();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|Level")
+	float GetExperiencePercentage();
+
 
 	/**
 	 * Character Montage and Animation Functionalities
@@ -475,6 +623,11 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Action")
 	bool ExecuteAction(const FActionData& ActionData, const bool bUseCooldown = true);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Character|Action")
+	void OnExecuteAction(const FActionData& ActionData);
+	virtual void OnExecuteAction_Native(const FActionData& ActionData);
+
 
 	/**
 	 * Starts a given Cooldown in the parameter by adding it to the stack. This Cooldown is accessible by its ID
@@ -585,17 +738,32 @@ public:
 	void SpawnSpawnableAbility_Replicated(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClass, const bool bInitializeMovement = true, const bool bUseCrosshair = true, const FName MeshSocketToSpawnAt = "None", const float Range = 2000.f, const ECollisionChannel CollisionChannel = ECC_Pawn);
 
 	/**
-	 *
+	 *	Buffs
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Spawnable")
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
 	void ServerSpawnSpawnableAbility(TSubclassOf<AKSpawnableAbility> SpawnableAbilityClassconst, const FSpawnableAbilitySpawnParams& SpawnParams);
 
-	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	UFUNCTION(BlueprintCallable, Category = "Kizu|Character|StatusEffects")
 	void SpawnBuff(TSubclassOf<AKBuff> BuffClass, EKBuffApplication BuffApplication);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|Spawnable")
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
 	void ServerSpawnBuff(TSubclassOf<AKBuff> BuffClass, AActor* Target);
 
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
+	void Server_AddStatusEffect(AKBuff* StatusEffectToAdd);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
+	void RemoveStatusEffect(AKBuff* StatusEffectToRemove);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
+	void Server_RemoveStatusEffect(AKBuff* StatusEffectToRemove);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Kizu|Character|StatusEffects")
+	void Server_RemoveAllStatusEffectsByClass(TSubclassOf<AKBuff> StatusEffectClass);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Character|StatusEffects")
+	bool DoesStatusEffectExist(TSubclassOf<AKBuff> StatusEffectClass);
 
 	/**
 	 * Inventory
@@ -631,4 +799,12 @@ public:
 
 	/** Initialize the default states */
 	void InitializeStates();
+
+protected:
+	
+	UPROPERTY(Replicated)
+	TWeakObjectPtr<AKCharacter> LastHitByCharacter;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	TArray<AKBuff*> StatusEffectsStack; // Can be changed to TWeakObjPtr
 };

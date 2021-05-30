@@ -5,6 +5,7 @@
 #include "Core/KCharacter.h"
 #include "FunctionLibrary/KCombatFunctionLibrary.h"
 #include "FunctionLibrary/KActionFunctionLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Engine/DataTable.h"
 
 
@@ -47,10 +48,17 @@ void UAnimNotifyState_KMelee::NotifyEnd(class USkeletalMeshComponent* MeshComp, 
 float UAnimNotifyState_KMelee::CalculateDamage()
 {
 	if (ValueSource == EValueSource::Static) return DamageValue;
-	else if (ValueSource == EValueSource::Dynamic) {
-		float CurrentResourceValue;
-		if (OwnerCharacter->GetResourceCurrentValue(ResourceName, CurrentResourceValue)) {
-			return (CurrentResourceValue * PercentageValue / 100);
+	else if (ValueSource == EValueSource::Dynamic) 
+	{
+		float ResultValue = 20.f;
+		if (OwnerCharacter->GetResourceCurrentValue(ResourceName, ResultValue))
+		{
+			ResultValue = (ResultValue * PercentageValue) / 100;
+			float MinValue;
+			float MaxValue;
+			UKCombatFunctionLibrary::GetVariance(MinValue, MaxValue, ResultValue);
+			ResultValue = UKismetMathLibrary::RandomIntegerInRange(MinValue, MaxValue);
+			return ResultValue;
 		}
 	}
 	else if (ValueSource == EValueSource::Custom) {
@@ -65,12 +73,19 @@ void UAnimNotifyState_KMelee::AffectActors(TArray<AActor*>& Actors)
 {
 	for (AActor* TempActor : Actors) {
 		bool bSameFaction = UKCombatFunctionLibrary::IsSameFactionWithCast(OwnerCharacter, TempActor);
-		if (!bIgnoreSelf && TempActor == OwnerCharacter) 
+		if (AKCharacter* KCharacter = Cast<AKCharacter>(TempActor))
+		{
+			if (!bIgnoreSelf && TempActor == OwnerCharacter)
+				AffectActor(TempActor);
+			if (bAffectOtherFaction && !bSameFaction)
+				AffectActor(TempActor);
+			if (bAffectSelfFaction && bSameFaction && TempActor != OwnerCharacter)
+				AffectActor(TempActor);
+		}
+		else
+		{
 			AffectActor(TempActor);
-		if (bAffectOtherFaction && !bSameFaction)
-			AffectActor(TempActor);
-		if (bAffectSelfFaction && bSameFaction && TempActor != OwnerCharacter)
-			AffectActor(TempActor);
+		}
 	}
 }
 

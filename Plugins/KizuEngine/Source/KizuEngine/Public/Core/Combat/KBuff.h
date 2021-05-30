@@ -8,6 +8,12 @@
 #include "Core/KCharacter.h"
 #include "KBuff.generated.h"
 
+UENUM(BlueprintType)
+enum class EBuffDamageValueType : uint8
+{
+	BDV_Static UMETA(DisplayName = "Static"),
+	BDV_DynamicOnSource UMETA(DisplayName = "Dynamic On Source")
+};
 
 USTRUCT(BlueprintType)
 struct FBuffEffect 
@@ -23,6 +29,13 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (EditCondition = "!bHealthResource"), Category = "Kizu|Spawnable Ability|Effect")
 	FString ResourceName = "None";
+
+	/** If the amount of damage or effect to apply is static or dynamic on a specific resource*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect)
+	EBuffDamageValueType EffectValueType = EBuffDamageValueType::BDV_Static;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Effect, meta = (EditCondition = "EffectValueType != EBuffDamageValueType::BDV_Static"))
+	FString SourceResourceName = "None";
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Buff|Effect")
 	float Value = 10.f;
@@ -62,6 +75,13 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay, meta = (EditCondition = "bUseTimeDilation"),Category = "Kizu|Buff")
 	FTimeDilationParams TimeDilationParams;
+
+	/** This will affect the movement of the targeted actor. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, AdvancedDisplay, Category = "Kizu|Buff")
+	bool bUseMovementSpeedModifier = false;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Kizu|Buff", meta = (EditCondition = "bUseMovementSpeedModifier"))
+	float MovementSpeedModifier = -100.f;
 };
 
 class AKCharacter;
@@ -82,10 +102,10 @@ public:
 	FBuffData BuffData;
 
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Kizu|Buff")
-	AActor* OwnerActor;
+	AActor* OwnerActor = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Kizu|Buff")
-	AActor* TargetActor;
+	AActor* TargetActor = nullptr;
 
 	FTimerHandle TickingTimerHandle;
 	FTimerHandle DurationHandle;
@@ -127,4 +147,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Kizu|Buff|Effect")
 	void ExecuteBuffEffectOnCharacter(FBuffEffect& BuffEffect, AKCharacter* OwnerCharacter, AKCharacter* TargetCharacter);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Kizu|Buff|Effect")
+	void OnExecuteBuff(AKCharacter* AffectedCharacter, FBuffEffect BuffEffect);
+	virtual void OnExecuteBuff_Native(AKCharacter* AffectedCharacter, FBuffEffect BuffEffect);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Kizu|Buff|Effect")
+	float GetEffectValue(const FBuffEffect& BuffEffect);
 };
