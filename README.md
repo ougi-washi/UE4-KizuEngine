@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://hiro-ke.github.io/UE4-KizuEngine/wiki/images/Icon128.png">
+  <img src="https://raw.githubusercontent.com/Hiro-KE/UE4-KizuEngine/master/Plugins/KizuEngine/Resources/Icon128.png">
 </p>
 
 Kizu Engine
