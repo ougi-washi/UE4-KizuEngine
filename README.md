@@ -62,10 +62,6 @@ Setting Up The Plugin
 - After starting the editor, you'll be able to enable the KizuEngine Plugin.
 - It will require you to restart the Unreal Engine Editor. Now, all the framework components are accessible to your project.
 
-How to use
------
-[Documentation link here](https://hiro-ke.github.io/UE4-KizuEngine/) (Still WIP)
-
 Contact
 --------
 For any issue or other services :
